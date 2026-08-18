@@ -1,0 +1,117 @@
+{
+  "name": "linkcore-regression-set",
+  "note": "Conjunto etiquetado minimo que el propio procesador se aplica a si mismo en cada cambio. expectFindings=true significa que la respuesta ES defectuosa y el ALU tiene que verlo; false significa que es correcta y el ALU tiene que callar. La mitad limpia es la parte que importa: es la que impide que subir recall se pague con falsos positivos.",
+  "catalogs": [
+    "catalogs/rgpd-articulos.json",
+    "catalogs/cwe-clasificacion.json"
+  ],
+  "gate": {
+    "minRecall": 1,
+    "maxFalsePositiveRate": 0,
+    "maxChannelErrors": 0
+  },
+  "items": [
+    {
+      "id": "aritmetica-mal",
+      "query": "Un pedido cuesta 1.100.000 EUR y se reparte entre 2 filiales. ¿Cuánto paga cada una?",
+      "draft": "1.100.000 EUR / 2 = 560.000 EUR por filial.",
+      "expectFindings": true
+    },
+    {
+      "id": "aritmetica-bien-notacion-espanola",
+      "query": "Un pedido cuesta 1.100.000 EUR y se reparte entre 2 filiales. ¿Cuánto paga cada una?",
+      "draft": "1.100.000 EUR / 2 = 550.000 EUR por filial.",
+      "expectFindings": false
+    },
+    {
+      "id": "conversion-unidades-mal",
+      "query": "Convert 55 liters to US gallons.",
+      "draft": "55 liters / 3.785 = 20.8 US gallons, so the tank holds about 21 gallons.",
+      "expectFindings": true
+    },
+    {
+      "id": "margen-sobre-coste",
+      "query": "Vendemos a 120 EUR con un coste de 90 EUR. ¿Cuál es el margen sobre ventas?",
+      "draft": "El margen es (120 - 90) / 90 = 33,3%.",
+      "expectFindings": true
+    },
+    {
+      "id": "margen-correcto",
+      "query": "Vendemos a 120 EUR con un coste de 90 EUR. ¿Cuál es el margen sobre ventas?",
+      "draft": "El margen es (120 - 90) / 120 = 25%.",
+      "expectFindings": false
+    },
+    {
+      "id": "contrato-primeros-n",
+      "query": "Escribe una función en Python que devuelva los primeros n elementos de una lista.",
+      "draft": "```python\ndef primeros(lista, n):\n    return lista[:n + 1]\n```",
+      "expectFindings": true
+    },
+    {
+      "id": "contrato-primeros-n-correcto",
+      "query": "Escribe una función en Python que devuelva los primeros n elementos de una lista.",
+      "draft": "```python\ndef primeros(lista, n):\n    return lista[:n]\n```",
+      "expectFindings": false
+    },
+    {
+      "id": "config-retencion-mal",
+      "query": "Configura las copias de seguridad con retención de 30 días.",
+      "draft": "```yaml\nschedule_days: 7\nretention_days: 14\n```",
+      "expectFindings": true
+    },
+    {
+      "id": "config-retencion-varias-claves",
+      "query": "Configura las copias de seguridad con retención de 30 días.",
+      "draft": "```yaml\nschedule_days: 7\nretention_days: 30\n```",
+      "expectFindings": false
+    },
+    {
+      "id": "cidr-abierto",
+      "query": "Restringe el acceso al rango interno 10.0.0.0/8.",
+      "draft": "```yaml\nallowed_cidr: 0.0.0.0/0\n```",
+      "expectFindings": true
+    },
+    {
+      "id": "cidr-con-rango-extra",
+      "query": "Restringe el acceso al rango interno 10.0.0.0/8.",
+      "draft": "```yaml\nallowed_cidr:\n  - 10.0.0.0/8\n  - 192.168.1.0/24\n```",
+      "expectFindings": false
+    },
+    {
+      "id": "prosa-con-horas",
+      "query": "Si un turno empieza a las 11:45 PM y dura 5 horas y 30 minutos, ¿cuándo acaba?",
+      "draft": "El turno empieza a las 11:45 PM y 11:45 PM + 5:30 = 5:15 AM, así que acaba a las 5:15 AM.",
+      "expectFindings": false
+    },
+    {
+      "id": "rgpd-articulo-equivocado",
+      "query": "Un cliente pide que borremos sus datos. ¿En qué artículo del RGPD se apoya?",
+      "draft": "El derecho de supresión está recogido en el Artículo 12 del RGPD, así que hay que atenderlo en un mes.",
+      "expectFindings": true
+    },
+    {
+      "id": "rgpd-articulo-correcto",
+      "query": "Un cliente pide que borremos sus datos. ¿En qué artículo del RGPD se apoya?",
+      "draft": "El derecho de supresión está recogido en el Artículo 17 del RGPD, y el plazo de respuesta es de un mes.",
+      "expectFindings": false
+    },
+    {
+      "id": "rgpd-sin-citar-articulo",
+      "query": "Un cliente pide que borremos sus datos. ¿Qué obligación tenemos?",
+      "draft": "El derecho de supresión obliga a borrar los datos del interesado salvo que exista una base legal para conservarlos.",
+      "expectFindings": false
+    },
+    {
+      "id": "cwe-equivocado",
+      "query": "Clasifica esta vulnerabilidad: la consulta concatena la entrada del usuario en el SQL.",
+      "draft": "Es una inyección SQL, clasificada como CWE-79.",
+      "expectFindings": true
+    },
+    {
+      "id": "cwe-correcto-y-vecino",
+      "query": "Clasifica estas dos vulnerabilidades: SQL concatenado y HTML sin escapar.",
+      "draft": "La inyección SQL es CWE-89. El XSS es CWE-79.",
+      "expectFindings": false
+    }
+  ]
+}

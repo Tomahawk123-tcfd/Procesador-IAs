@@ -41,6 +41,14 @@
 //                 generadas de forma independiente, exactamente la misma
 //                 maquina que ya se usa para comparar dos modelos locales
 //                 entre si.
+//   AUDIT      -> runBatchAudit(): VERIFY sobre un conjunto entero, con
+//                 puerta de calidad (2026-08-18). Es la instruccion que
+//                 convierte el procesador en infraestructura y no en una
+//                 utilidad manual: una empresa no verifica una respuesta,
+//                 verifica su conjunto de evaluacion en cada despliegue y
+//                 necesita un veredicto (pasa/no pasa) que pueda cortar un
+//                 CI. Mismo codigo determinista que VERIFY, nunca una
+//                 variante paralela que pudiera divergir.
 //   TELEMETRY  -> getVNPUStats(): estado real del hardware + historial de
 //                 instrucciones ejecutadas.
 //   ENSEMBLE   -> retirado a proposito (ver el case mas abajo): el ensemble
@@ -64,6 +72,7 @@ export var VNPU_OPCODES = {
   CROSSCHECK: 'vNPU.CROSSCHECK',
   AUTOVERIFY: 'vNPU.AUTOVERIFY',
   GROUND: 'vNPU.GROUND',
+  AUDIT: 'vNPU.AUDIT',
   ENSEMBLE: 'vNPU.ENSEMBLE',
   TELEMETRY: 'vNPU.TELEMETRY',
 };
@@ -433,6 +442,42 @@ export async function runVNPUInstruction(opcode, payload, options) {
       } catch (e) {
         return { ok: false, error: 'error_interno: ' + e.message };
       }
+      // Catalogos de referencia (2026-08-18): unico hueco que las fuentes
+      // aportadas no cierran -- una respuesta puede citar el articulo o el
+      // CWE equivocado sin contradecir ninguna fuente, simplemente porque la
+      // fuente correcta no viene en el payload. Se compone AQUI en vez de
+      // dentro de grounding-verify.js porque es una entrada distinta (un
+      // catalogo que instala la empresa, versionado, no un documento del
+      // caso) y porque ese modulo ya tiene su contrato de canales cerrado.
+      // Sin `catalogs` en el payload no corre nada: el procesador no lleva
+      // conocimiento normativo propio y no debe fingir tenerlo.
+      if (payload.catalogs !== undefined && !Array.isArray(payload.catalogs)) {
+        return { ok: false, error: 'catalogs_debe_ser_array' };
+      }
+      if (payload.catalogs && payload.catalogs.length > 0) {
+        var catalogMod = await import('./reference-catalog.js');
+        var catalogFindings = [];
+        var catalogErrors = [];
+        payload.catalogs.forEach(function (cat) {
+          try {
+            catalogMod.verifyReferenceCatalog(payload.answer, cat).forEach(function (f) {
+              if (f.tipo === 'catalogo_invalido') {
+                catalogErrors.push((cat && cat.id ? cat.id : 'sin_id') + ': ' + f.detalle);
+                return;
+              }
+              catalogFindings.push(Object.assign({ channel: 'REFERENCE_CATALOG' }, f));
+            });
+          } catch (e) {
+            catalogErrors.push((cat && cat.id ? cat.id : 'sin_id') + ': ' + e.message);
+          }
+        });
+        groundResult.findings = (groundResult.findings || []).concat(catalogFindings);
+        groundResult.channelsRun = (groundResult.channelsRun || []).concat(['REFERENCE_CATALOG']);
+        groundResult.catalogsRun = payload.catalogs.map(function (c) {
+          return (c && c.id ? c.id : 'sin_id') + '@' + (c && c.version ? c.version : 'sin_version');
+        });
+        if (catalogErrors.length > 0) groundResult.catalogErrors = catalogErrors;
+      }
       var groundTime = Date.now() - startTime;
       recordTelemetry({
         opcode: VNPU_OPCODES.GROUND,
@@ -461,7 +506,10 @@ export async function runVNPUInstruction(opcode, payload, options) {
       });
       var groundVerified = {
         channels: groundResult.channelsRun || [],
-        channelErrors: [],
+        // Un catalogo mal formado es un error de canal, no un silencio: si no
+        // se propaga aqui, la puerta de calidad da por bueno un lote que en
+        // realidad no comprobo las referencias.
+        channelErrors: groundResult.catalogErrors ? ['REFERENCE_CATALOG'] : [],
         findingCounts: groundFindingCounts,
         hasFindings: !!(groundResult.findings && groundResult.findings.length),
       };
@@ -621,6 +669,47 @@ export async function runVNPUInstruction(opcode, payload, options) {
         escalated: true,
       });
       return ccResult;
+    }
+
+    case VNPU_OPCODES.AUDIT: {
+      var { runBatchAudit } = await import('./batch-audit.js');
+      var auditResult = await runBatchAudit(payload);
+      var auditMs = Date.now() - startTime;
+      if (!auditResult.ok) return auditResult;
+      recordTelemetry({ opcode: VNPU_OPCODES.AUDIT, model: 'deterministic', provider: 'local', latencyMs: auditMs, success: true });
+      // Un solo evento por LOTE, no uno por elemento: el historial de
+      // calidad mide instrucciones, y un lote de mil elementos que generara
+      // mil eventos falsearia cualquier agregado posterior. El detalle por
+      // elemento ya viaja en la respuesta.
+      await recordQuality(options, {
+        opcode: VNPU_OPCODES.AUDIT,
+        draft: '',
+        verified: {
+          channels: Object.keys(auditResult.summary.channelHits),
+          channelErrors: Object.keys(auditResult.summary.channelErrors),
+          findingCounts: auditResult.summary.channelHits,
+          hasFindings: auditResult.summary.withFindings > 0,
+        },
+        verifyMs: auditMs,
+        totalMs: auditMs,
+      });
+      await recordAudit(options, {
+        opcode: VNPU_OPCODES.AUDIT,
+        // Lo que se firma de un lote es su resultado agregado y el veredicto:
+        // es lo que la empresa va a enseñar como evidencia de que ese
+        // despliegue paso la puerta.
+        draft: JSON.stringify(auditResult.summary),
+        query: 'gate=' + JSON.stringify(auditResult.gate),
+        verified: {
+          channels: Object.keys(auditResult.summary.channelHits),
+          channelErrors: Object.keys(auditResult.summary.channelErrors),
+          findingCounts: auditResult.summary.channelHits,
+          hasFindings: !auditResult.passed,
+        },
+        totalMs: auditMs,
+      });
+      auditResult.latencyMs = auditMs;
+      return auditResult;
     }
 
     case VNPU_OPCODES.TELEMETRY: {

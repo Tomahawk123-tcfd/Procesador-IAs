@@ -1,0 +1,33 @@
+name: CI
+
+# El procesador se aplica a si mismo su propia puerta de calidad. No hay
+# `npm ci`: los tests y los canales deterministas no dependen de ninguna
+# dependencia de node_modules (node-llama-cpp solo hace falta para ejecutar
+# modelos locales, que aqui no se ejecutan), asi que instalar compilaria un
+# binario nativo de ~350MB para nada.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node --test test/*.test.js
+
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # Sale con codigo 1 si el ALU deja pasar un defecto etiquetado o si
+      # inventa un hallazgo sobre una respuesta correcta. Es la misma
+      # instruccion (vNPU.AUDIT) que una empresa cliente pone en su CI.
+      - run: node scripts/quality-gate.mjs

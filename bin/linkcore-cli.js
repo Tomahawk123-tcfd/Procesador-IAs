@@ -569,7 +569,8 @@ function printCrosscheckResult(d) {
 async function cmdVnpu(opcodeArg, payloadArg, json) {
   if (!opcodeArg) {
     console.error('Uso: linkcore vnpu <OPCODE> [\'{"query":"..."}\'] [--json]');
-    console.error('Opcodes: EXEC, ROUTE, VERIFY, CRITIQUE, TELEMETRY');
+    console.error('Opcodes: EXEC, ROUTE, VERIFY, CRITIQUE, AUDIT, TELEMETRY');
+    console.error('El payload puede ser JSON inline o @ruta/al/fichero.json');
     process.exitCode = 1;
     return;
   }
@@ -578,10 +579,39 @@ async function cmdVnpu(opcodeArg, payloadArg, json) {
     : 'vNPU.' + opcodeArg.toUpperCase();
   var payload = {};
   if (payloadArg) {
-    try { payload = JSON.parse(payloadArg); } catch (e) {
+    // `@fichero.json` lee el payload de disco: un conjunto de evaluacion para
+    // AUDIT no cabe como argumento de linea de comandos (y en Windows las
+    // comillas del JSON inline se pierden por el camino).
+    var raw = payloadArg;
+    if (raw.charAt(0) === '@') {
+      try { raw = fs.readFileSync(raw.slice(1), 'utf-8'); } catch (e) {
+        console.error('[LinkCore] no se pudo leer el payload de ' + payloadArg.slice(1) + ': ' + e.message);
+        process.exitCode = 1;
+        return;
+      }
+    }
+    try { payload = JSON.parse(raw); } catch (e) {
       console.error('[LinkCore] payload invalido (debe ser JSON): ' + e.message);
       process.exitCode = 1;
       return;
+    }
+    // Los catalogos de referencia (AUDIT y GROUND) se declaran por ruta, no
+    // pegados dentro del payload: una taxonomia normativa se versiona aparte y
+    // se comparte entre conjuntos. Las rutas se resuelven contra el directorio
+    // del propio payload cuando vino de un fichero, que es lo que espera quien
+    // escribe "catalogs/rgpd-articulos.json" al lado de su conjunto.
+    if (Array.isArray(payload.catalogs)) {
+      var catalogBase = payloadArg.charAt(0) === '@' ? path.dirname(payloadArg.slice(1)) : process.cwd();
+      try {
+        payload.catalogs = payload.catalogs.map(function (entry) {
+          if (typeof entry !== 'string') return entry;
+          return JSON.parse(fs.readFileSync(path.resolve(catalogBase, entry), 'utf-8'));
+        });
+      } catch (e) {
+        console.error('[LinkCore] no se pudo cargar un catalogo de referencia: ' + e.message);
+        process.exitCode = 1;
+        return;
+      }
     }
   }
   try {
@@ -634,6 +664,39 @@ async function cmdVnpu(opcodeArg, payloadArg, json) {
         });
       } else {
         console.log('✓ Sin hallazgos (' + d.summary.totalChecked + ' afirmaciones comprobadas contra ' + d.summary.sourcesUsable + ' fuente(s)).');
+      }
+    } else if (opcode === 'vNPU.AUDIT') {
+      if (!d.ok) {
+        console.log('(no disponible: ' + d.error + ')');
+        process.exitCode = 1;
+        return;
+      }
+      var s = d.summary;
+      console.log('Conjunto: ' + s.audited + '/' + s.items + ' auditados en ' + s.latencyMs + 'ms');
+      console.log('Con hallazgo: ' + s.withFindings + ' (' + Math.round((s.findingRate || 0) * 100) + '%)');
+      if (s.recall !== null) {
+        console.log('Recall: ' + Math.round(s.recall * 100) + '% · precisión: ' + (s.precision === null ? 'n/d' : Math.round(s.precision * 100) + '%') + ' · falsos positivos: ' + Math.round(s.falsePositiveRate * 100) + '%');
+      } else {
+        console.log('Recall: no calculable (el conjunto no trae etiquetas expectFindings)');
+      }
+      var hitChannels = Object.keys(s.channelHits);
+      if (hitChannels.length) {
+        console.log('Canales que dispararon:');
+        hitChannels.sort(function (a, b) { return s.channelHits[b] - s.channelHits[a]; }).forEach(function (ch) {
+          console.log('  ' + ch + ': ' + s.channelHits[ch]);
+        });
+      }
+      if (s.totalChannelErrors) console.log(YELLOW + 'Canales con error: ' + JSON.stringify(s.channelErrors) + RESET);
+      if (d.passed) {
+        console.log(GREEN + '✓ Puerta de calidad superada.' + RESET);
+      } else {
+        console.log(YELLOW + '✗ Puerta de calidad NO superada:' + RESET);
+        d.violations.forEach(function (v) {
+          console.log('  ' + v.regla + ': límite ' + v.limite + ', medido ' + (v.medido === null ? 'n/d' : v.medido) + (v.detalle ? ' (' + v.detalle + ')' : ''));
+        });
+        // Codigo de salida distinto de 0: es lo que permite que esto corte un
+        // CI sin que nadie tenga que leer la salida.
+        process.exitCode = 1;
       }
     } else if (opcode === 'vNPU.CROSSCHECK') {
       printCrosscheckResult(d);

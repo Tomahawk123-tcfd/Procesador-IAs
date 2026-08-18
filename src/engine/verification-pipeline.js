@@ -4,6 +4,15 @@ import { verifyOutputClaims } from './output-verify.js';
 import { verifyComparisons, verifyDuplicateClaims } from './coherence-verify.js';
 import { verifyTemporalClaims } from './temporal-verify.js';
 import { verifyStructuralCoherence } from './structural-verify.js';
+import { verifyUnits } from './unit-verify.js';
+import { verifyAlgebraicSubstitution } from './algebra-verify.js';
+import { verifyConclusionConsistency } from './conclusion-verify.js';
+import { verifySqlSemantics } from './sql-semantic-verify.js';
+import { verifySourceFidelity } from './source-fidelity-verify.js';
+import { verifyConfigIntent } from './config-intent-verify.js';
+import { verifyFinancialFormulas } from './financial-verify.js';
+import { verifyQueryGrounding } from './query-grounding-verify.js';
+import { verifyCodeContract } from './code-contract-verify.js';
 
 // Canales de verificacion que este pipeline sabe ejecutar. Se exporta para
 // que el motor de calidad agregada (quality-engine.js) pueda listar TODOS
@@ -11,7 +20,18 @@ import { verifyStructuralCoherence } from './structural-verify.js';
 // un verificador con 0 disparos en trafico real es peso muerto y el
 // operador merece verlo en la tabla, no que desaparezca por no tener datos
 // (2026-08-18).
-export var VERIFICATION_CHANNELS = ['operation', 'math', 'code', 'output', 'coherence', 'duplicate', 'temporal', 'structural'];
+export var VERIFICATION_CHANNELS = [
+  'operation', 'math', 'code', 'output', 'coherence', 'duplicate', 'temporal', 'structural',
+  // Canales añadidos el 2026-08-18 tras medir el recall real del ALU con un
+  // corpus que no lo habia visto nunca (scripts/offline-verify-probe.mjs):
+  // 3/30 en el corpus independiente, 2/30 en el empresarial. Cada uno cubre
+  // un modo de fallo concreto que ninguno de los ocho anteriores podia ver.
+  'unit', 'algebra', 'conclusion', 'sql', 'source', 'config', 'financial', 'grounding',
+  // 'codeContract' complementa a 'code': ese comprueba que el codigo COMPILE,
+  // este que cumpla lo que la pregunta pidio (limites, cierre de recursos,
+  // comprobacion de existencia, manejo de errores).
+  'codeContract',
+];
 
 // Aplica los verificadores deterministas del procesador sobre un texto y
 // antepone avisos cuando encuentra un problema real. Se extrae a modulo
@@ -157,6 +177,159 @@ export async function applyDeterministicVerification(text, query) {
       out = structuralWarningLines.join('\n') + '\n\n' + out;
     }
   } catch (e) { channelErrors.push('structural'); }
+  // ── Canales de generalizacion (2026-08-18) ──
+  // Los ocho canales de arriba se escribieron cada uno a partir de un fallo
+  // real visto en vivo, y detectan muy bien ESE fallo. Medir con un corpus
+  // independiente dejo claro el precio de esa forma de crecer: 10% de recall
+  // sobre errores que el verificador no habia visto nunca. Los cinco de abajo
+  // atacan clases enteras de fallo (unidades, algebra, conclusion que se
+  // contradice, semantica SQL, fidelidad a la fuente citada) en vez de casos.
+  try {
+    var unitFindings = verifyUnits(text);
+    if (unitFindings.length > 0) {
+      hasFindings = true;
+      note('unit', unitFindings.length);
+      var unitLines = ['⚠️ Aviso de unidades (recalculado, no otra opinión de IA):'];
+      unitFindings.forEach(function (f) {
+        if (f.tipo === 'aritmetica_con_unidades') {
+          unitLines.push('  "' + f.expresion + '" da ' + f.valorCorrecto + ', pero el texto afirma ' + f.valorAfirmado + ' (' + f.diffPct + '% de diferencia).');
+        } else if (f.tipo === 'descomposicion_temporal') {
+          unitLines.push('  ' + f.expresion + ' son ' + f.valorCorrecto + ', no ' + f.valorAfirmado + '.');
+        } else {
+          unitLines.push('  "' + f.expresion + '" es imposible: el resto no puede llegar a ' + f.limite + '.');
+        }
+      });
+      out = unitLines.join('\n') + '\n\n' + out;
+    }
+  } catch (e) { channelErrors.push('unit'); }
+  try {
+    var algebraFindings = verifyAlgebraicSubstitution(text);
+    if (algebraFindings.length > 0) {
+      hasFindings = true;
+      note('algebra', algebraFindings.length);
+      var algebraLines = ['⚠️ Aviso de álgebra (la fórmula declarada no es la que se sustituye):'];
+      algebraFindings.forEach(function (f) {
+        if (f.tipo === 'razon_sustituida_distinta') {
+          algebraLines.push('  "' + f.cantidad + '" se define con la razón ' + f.razonDeclarada + ' pero se calcula con ' + f.razonUsada + '.');
+        } else {
+          algebraLines.push('  de "' + f.ecuacionDeclarada + '" se despeja "' + f.despejeEscrito + '"; lo correcto es ' + f.despejeCorrecto + '.');
+        }
+      });
+      out = algebraLines.join('\n') + '\n\n' + out;
+    }
+  } catch (e) { channelErrors.push('algebra'); }
+  try {
+    var conclusionFindings = verifyConclusionConsistency(text, query);
+    if (conclusionFindings.length > 0) {
+      hasFindings = true;
+      note('conclusion', conclusionFindings.length);
+      var conclusionLines = ['⚠️ Aviso de conclusión (la respuesta contradice su propio desarrollo):'];
+      conclusionFindings.forEach(function (f) {
+        if (f.tipo === 'conclusion_contradice_desarrollo') {
+          conclusionLines.push('  el desarrollo llega a "' + f.enElDesarrollo + '" pero la conclusión dice "' + f.enLaConclusion + '" (' + f.dimension + ').');
+        } else if (f.tipo === 'desplazamiento_horario_incoherente') {
+          conclusionLines.push('  declara un desplazamiento de ' + f.desplazamientoDeclarado + ' pero entre ' + f.horas.join(' y ') + ' hay ' + f.desplazamientoAplicado + '.');
+        } else if (f.tipo === 'redondeo_incoherente') {
+          conclusionLines.push('  calcula ' + f.calculado + ' y lo redondea a ' + f.redondeado + ' (' + f.diffPct + '% de diferencia).');
+        } else if (f.tipo === 'asignacion_contradictoria') {
+          conclusionLines.push('  "' + f.sujeto + '" aparece asignado a dos posiciones distintas: ' + f.posiciones.join(' y ') + '.');
+        } else if (f.tipo === 'veredicto_contradice_explicacion') {
+          conclusionLines.push('  el veredicto inicial ("' + f.veredicto + '") no concuerda con la explicación: "' + f.explicacion + '"');
+        }
+      });
+      out = conclusionLines.join('\n') + '\n\n' + out;
+    }
+  } catch (e) { channelErrors.push('conclusion'); }
+  try {
+    var sqlFindings = verifySqlSemantics(text, query);
+    if (sqlFindings.length > 0) {
+      hasFindings = true;
+      note('sql', sqlFindings.length);
+      var sqlLines = ['⚠️ Aviso de SQL (la consulta es válida pero no hace lo que se pidió):'];
+      sqlFindings.forEach(function (f) {
+        sqlLines.push('  [' + f.tipo + '] ' + f.detalle + (f.fragmento ? ' — "' + f.fragmento + '"' : ''));
+      });
+      out = sqlLines.join('\n') + '\n\n' + out;
+    }
+  } catch (e) { channelErrors.push('sql'); }
+  try {
+    var sourceFindings = verifySourceFidelity(text, query);
+    if (sourceFindings.length > 0) {
+      hasFindings = true;
+      note('source', sourceFindings.length);
+      var sourceLines = ['⚠️ Aviso de fidelidad a la fuente citada en la pregunta:'];
+      sourceFindings.forEach(function (f) {
+        sourceLines.push('  la respuesta dice "' + f.enLaRespuesta + '" pero la fuente dice "' + f.enLaFuente + '".');
+      });
+      out = sourceLines.join('\n') + '\n\n' + out;
+    }
+  } catch (e) { channelErrors.push('source'); }
+  try {
+    var configFindings = verifyConfigIntent(text, query);
+    if (configFindings.length > 0) {
+      hasFindings = true;
+      note('config', configFindings.length);
+      var configLines = ['⚠️ Aviso de configuración (válida en sintaxis, distinta de lo que se pidió):'];
+      configFindings.forEach(function (f) {
+        configLines.push('  [' + f.tipo + '] ' + f.detalle + ' — "' + f.entregado + '"' + (f.pedido ? ' (se pidió: ' + f.pedido + ')' : ''));
+      });
+      out = configLines.join('\n') + '\n\n' + out;
+    }
+  } catch (e) { channelErrors.push('config'); }
+  try {
+    var financialFindings = verifyFinancialFormulas(text, query);
+    if (financialFindings.length > 0) {
+      hasFindings = true;
+      note('financial', financialFindings.length);
+      var financialLines = ['⚠️ Aviso financiero (la aritmética cuadra, la fórmula no es la pedida):'];
+      financialFindings.forEach(function (f) {
+        if (f.tipo === 'base_del_porcentaje_incorrecta') {
+          financialLines.push('  se pidió el porcentaje sobre "' + f.baseDeclarada + '" pero "' + f.expresion + '" divide entre ' + f.baseUsada + '.');
+        } else if (f.tipo === 'division_invertida') {
+          financialLines.push('  "' + f.expresion + '": ' + f.detalle + '.');
+        } else if (f.tipo === 'impuesto_omitido') {
+          financialLines.push('  ' + f.detalle + ' (' + f.pedido + ').');
+        } else {
+          financialLines.push('  se pidió ' + f.pedido + ' y la respuesta usa ' + f.usado + '.');
+        }
+      });
+      out = financialLines.join('\n') + '\n\n' + out;
+    }
+  } catch (e) { channelErrors.push('financial'); }
+  try {
+    var groundingFindings = verifyQueryGrounding(text, query);
+    if (groundingFindings.length > 0) {
+      hasFindings = true;
+      note('grounding', groundingFindings.length);
+      var groundingLines = ['⚠️ Aviso de respaldo en la fuente aportada en la pregunta:'];
+      groundingFindings.forEach(function (f) {
+        if (f.tipo === 'atribucion_cruzada') {
+          groundingLines.push('  se atribuye a "' + f.atribuidoA + '" contenido que la fuente asigna a "' + f.perteneceA + '" (' + f.terminos.join(', ') + ').');
+        } else if (f.tipo === 'excepcion_de_la_fuente_omitida') {
+          groundingLines.push('  la fuente dice "' + f.marcadorEnLaFuente + '" y la respuesta afirma "' + f.afirmacionAbsoluta + '" sin recoger esa restricción.');
+        } else if (f.tipo === 'propiedad_invertida') {
+          groundingLines.push('  se adjudica al "' + f.atribuidoA + '" lo que la fuente adjudica al "' + f.perteneceA + '" (' + f.terminos.join(', ') + ').');
+        } else if (f.tipo === 'referencia_fuera_de_rango') {
+          groundingLines.push('  se da por válida la ' + f.referencia + ' pero el documento solo tiene ' + f.unidadesDelDocumento + '.');
+        } else {
+          groundingLines.push('  "' + f.inventados.join(', ') + '" no aparece en la fuente (permitidos: ' + f.permitidosPorLaFuente.join(', ') + ').');
+        }
+      });
+      out = groundingLines.join('\n') + '\n\n' + out;
+    }
+  } catch (e) { channelErrors.push('grounding'); }
+  try {
+    var contractFindings = verifyCodeContract(text, query);
+    if (contractFindings.length > 0) {
+      hasFindings = true;
+      note('codeContract', contractFindings.length);
+      var contractLines = ['⚠️ Aviso de contrato en el código (compila, pero no cumple lo que se pidió):'];
+      contractFindings.forEach(function (f) {
+        contractLines.push('  ' + f.expresion + ' — ' + f.detalle);
+      });
+      out = contractLines.join('\n') + '\n\n' + out;
+    }
+  } catch (e) { channelErrors.push('codeContract'); }
   return {
     text: out,
     hasFindings: hasFindings,
