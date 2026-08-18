@@ -12,6 +12,7 @@ import { verifySourceFidelity } from './source-fidelity-verify.js';
 import { verifyConfigIntent } from './config-intent-verify.js';
 import { verifyFinancialFormulas } from './financial-verify.js';
 import { verifyGrounding } from './grounding-verify.js';
+import { verifyCodeContract } from './code-contract-verify.js';
 
 // Canales de verificacion que este pipeline sabe ejecutar. Se exporta para
 // que el motor de calidad agregada (quality-engine.js) pueda listar TODOS
@@ -26,6 +27,10 @@ export var VERIFICATION_CHANNELS = [
   // 3/30 en el corpus independiente, 2/30 en el empresarial. Cada uno cubre
   // un modo de fallo concreto que ninguno de los ocho anteriores podia ver.
   'unit', 'algebra', 'conclusion', 'sql', 'source', 'config', 'financial', 'grounding',
+  // 'codeContract' complementa a 'code': ese comprueba que el codigo COMPILE,
+  // este que cumpla lo que la pregunta pidio (limites, cierre de recursos,
+  // comprobacion de existencia, manejo de errores).
+  'codeContract',
 ];
 
 // Aplica los verificadores deterministas del procesador sobre un texto y
@@ -302,6 +307,10 @@ export async function applyDeterministicVerification(text, query) {
           groundingLines.push('  se atribuye a "' + f.atribuidoA + '" contenido que la fuente asigna a "' + f.perteneceA + '" (' + f.terminos.join(', ') + ').');
         } else if (f.tipo === 'excepcion_de_la_fuente_omitida') {
           groundingLines.push('  la fuente dice "' + f.marcadorEnLaFuente + '" y la respuesta afirma "' + f.afirmacionAbsoluta + '" sin recoger esa restricción.');
+        } else if (f.tipo === 'propiedad_invertida') {
+          groundingLines.push('  se adjudica al "' + f.atribuidoA + '" lo que la fuente adjudica al "' + f.perteneceA + '" (' + f.terminos.join(', ') + ').');
+        } else if (f.tipo === 'referencia_fuera_de_rango') {
+          groundingLines.push('  se da por válida la ' + f.referencia + ' pero el documento solo tiene ' + f.unidadesDelDocumento + '.');
         } else {
           groundingLines.push('  "' + f.inventados.join(', ') + '" no aparece en la fuente (permitidos: ' + f.permitidosPorLaFuente.join(', ') + ').');
         }
@@ -309,6 +318,18 @@ export async function applyDeterministicVerification(text, query) {
       out = groundingLines.join('\n') + '\n\n' + out;
     }
   } catch (e) { channelErrors.push('grounding'); }
+  try {
+    var contractFindings = verifyCodeContract(text, query);
+    if (contractFindings.length > 0) {
+      hasFindings = true;
+      note('codeContract', contractFindings.length);
+      var contractLines = ['⚠️ Aviso de contrato en el código (compila, pero no cumple lo que se pidió):'];
+      contractFindings.forEach(function (f) {
+        contractLines.push('  ' + f.expresion + ' — ' + f.detalle);
+      });
+      out = contractLines.join('\n') + '\n\n' + out;
+    }
+  } catch (e) { channelErrors.push('codeContract'); }
   return {
     text: out,
     hasFindings: hasFindings,

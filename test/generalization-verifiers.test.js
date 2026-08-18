@@ -8,7 +8,8 @@ import { verifySqlSemantics } from '../src/engine/sql-semantic-verify.js';
 import { verifySourceFidelity } from '../src/engine/source-fidelity-verify.js';
 import { verifyConfigIntent } from '../src/engine/config-intent-verify.js';
 import { verifyFinancialFormulas } from '../src/engine/financial-verify.js';
-import { verifyGrounding } from '../src/engine/grounding-verify.js';
+import { verifyGrounding, verifyOwnershipAttribution, verifyReferenceRange } from '../src/engine/grounding-verify.js';
+import { verifyCodeContract } from '../src/engine/code-contract-verify.js';
 
 // Cada caso lleva su pareja correcta: un verificador que solo acierta el fallo
 // pero grita sobre la respuesta buena es inservible en produccion, porque el
@@ -193,4 +194,44 @@ test('config channel accepts the requested value in any key that measures it', f
   var flawed = '```yaml\nbackup:\n  schedule_days: 7\n  retention_days: 3\n```';
   assert.deepEqual(verifyConfigIntent(correct, query), []);
   assert.equal(verifyConfigIntent(flawed, query).length, 1);
+});
+
+// Canal codeContract: el codigo COMPILA, pero no cumple lo que se pidio. Es el
+// hueco que el corpus empresarial marcaba con 4/5 casos sin detectar.
+test('code contract catches an off-by-one bound against the requested count', function () {
+  var query = 'Escribe una función en Python que devuelva los primeros n elementos de una lista.';
+  assert.equal(verifyCodeContract('```python\ndef first_n(items, n):\n    return items[:n+1]\n```', query).length, 1);
+  assert.deepEqual(verifyCodeContract('```python\ndef first_n(items, n):\n    return items[:n]\n```', query), []);
+});
+
+test('code contract catches a file handle that is never closed', function () {
+  var query = 'Escribe una función en Python que abra un archivo, lo procese línea por línea, y lo cierre.';
+  assert.equal(verifyCodeContract('```python\ndef process_file(path):\n    f = open(path)\n    for line in f:\n        handle(line)\n```', query).length, 1);
+  assert.deepEqual(verifyCodeContract('```python\ndef process_file(path):\n    with open(path) as f:\n        for line in f:\n            handle(line)\n```', query), []);
+});
+
+test('code contract catches truthiness used as an existence check', function () {
+  var query = 'Escribe una función en JavaScript que compruebe si un valor existe en un objeto de configuración antes de usarlo, para evitar acceder a una propiedad indefinida.';
+  assert.equal(verifyCodeContract('```javascript\nfunction getTimeout(config) {\n  if (config.timeoutMs) {\n    return config.timeoutMs;\n  }\n  return DEFAULT_TIMEOUT_MS;\n}\n```', query).length, 1);
+  assert.deepEqual(verifyCodeContract('```javascript\nfunction getTimeout(config) {\n  if (config.timeoutMs !== undefined) {\n    return config.timeoutMs;\n  }\n  return DEFAULT_TIMEOUT_MS;\n}\n```', query), []);
+});
+
+test('code contract stays silent when the query does not ask for the property', function () {
+  // Sin peticion explicita no hay contrato que comprobar: avisar aqui seria
+  // opinar sobre estilo, y un aviso opinable destruye la confianza en el canal.
+  assert.deepEqual(verifyCodeContract('```python\ndef first_n(items, n):\n    return items[:n+1]\n```', 'Escribe una función en Python.'), []);
+});
+
+test('grounding catches inverted ownership between the two parties of a clause', function () {
+  var query = 'Resume esta cláusula de propiedad intelectual: "Todo trabajo derivado creado por el Contratista específicamente para este proyecto será propiedad del Cliente. Las herramientas, bibliotecas y metodologías preexistentes del Contratista permanecen siendo propiedad del Contratista."';
+  var flawed = 'Todo el trabajo, incluidas las herramientas y metodologías preexistentes del Contratista, pasa a ser propiedad del Cliente al finalizar el proyecto.';
+  var correct = 'El trabajo creado específicamente para este proyecto pasa a ser propiedad del Cliente. Las herramientas y metodologías que el Contratista ya tenía antes del proyecto siguen siendo del Contratista.';
+  assert.equal(verifyOwnershipAttribution(flawed, query).length, 1);
+  assert.deepEqual(verifyOwnershipAttribution(correct, query), []);
+});
+
+test('grounding catches a reference beyond the extent stated in the query', function () {
+  var query = 'Un informe técnico afirma: "Como se detalla en la Sección 7 de este mismo informe, la latencia p99 se mantuvo por debajo de 200ms." El informe completo solo tiene 5 secciones. ¿Es correcta esta referencia?';
+  assert.equal(verifyReferenceRange('Sí, la referencia a la Sección 7 es válida.', query).length, 1);
+  assert.deepEqual(verifyReferenceRange('No, la Sección 7 no existe: el informe solo tiene 5 secciones.', query), []);
 });
