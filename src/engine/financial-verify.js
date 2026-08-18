@@ -42,6 +42,10 @@ function toNumber(raw) {
 var NUM = '\\d[\\d.,]*';
 var DIV = new RegExp('(' + NUM + ')\\s*/\\s*(' + NUM + ')', 'g');
 var MULT = new RegExp('(' + NUM + ')\\s*[x×*]\\s*(' + NUM + ')', 'g');
+// Division cuyo numerador es una resta entre parentesis: "(120 - 90) / 90".
+// DIV no la ve porque su numerador no es un numero, y es la forma en que un
+// modelo escribe un margen practicamente siempre.
+var DIFF_DIV = new RegExp('\\(\\s*(' + NUM + ')\\s*[-–]\\s*(' + NUM + ')\\s*\\)\\s*/\\s*(' + NUM + ')', 'g');
 
 // Magnitudes nombradas en la pregunta: "ingresos de 4.200.000 EUR",
 // "2.000.000 de acciones", "costes de 3.100.000".
@@ -76,6 +80,18 @@ var PERCENT_BASE = /(?:como\s+)?(?:porcentaje|%|percentage)\s+(?:de|del|de\s+los
 var ASKS_MARKUP = /\bmark[\s-]?up\b|\brecargo\s+sobre\s+(?:el\s+)?coste\b/i;
 var ASKS_TARGET_MARGIN = /\bmargen\s+(?:bruto\s+)?objetivo\b|\btarget\s+margin\b/i;
 var PER_UNIT = /\b(?:precio|coste|valor|price|cost)\s+por\s+([a-zA-ZÁ-ÿ]{4,20})|\bper\s+([a-zA-ZÁ-ÿ]{4,20})\b/i;
+// "Margen sobre ventas" fija la base (el precio de venta) sin usar la palabra
+// "porcentaje", asi que la regla 1) no lo ve. El error que atrapa esto es el
+// clasico: dividir el beneficio entre el coste y llamarlo margen.
+var MARGIN_ON_SALES = /\bmargen\s+(?:bruto\s+)?(?:sobre|respecto\s+a)\s+(?:las?\s+|los\s+)?(ventas|ingresos|facturacion|facturación)\b|\b(?:gross\s+)?margin\s+on\s+(sales|revenue)\b/i;
+var SALE_PRICE = /\b(?:vendemos|se\s+vende|venta|precio\s+de\s+venta|price|sells?)\s*(?:a|por|de|for|at|:)?\s*(\d[\d.,]*)/i;
+var UNIT_COST = /\b(?:coste|costo|cost)\s*(?:unitario|de\s+produccion|de\s+producción)?\s*(?:de|es|:|of|is)?\s*(\d[\d.,]*)/i;
+
+function firstQuantity(source, re) {
+  var m = re.exec(String(source));
+  return m ? toNumber(m[1]) : null;
+}
+
 var TAX_IN_QUERY = /\b(?:IVA|VAT|impuesto|tax)\s+(?:del?\s+)?(\d[\d.,]*)\s*%/i;
 var TAX_EXCLUDED = /\b(?:sin\s+(?:IVA|impuestos)|excluding\s+(?:VAT|tax)|IVA\s+aparte)\b/i;
 
@@ -135,6 +151,58 @@ export function verifyFinancialFormulas(text, query) {
           baseDeclarada: baseAsked[1],
           baseUsada: wrong.label + ' (' + wrong.raw + ')',
           expresion: m[0],
+        });
+      }
+    }
+  }
+
+  // 1b) "Margen sobre ventas/ingresos" dividido entre el COSTE. Es el mismo
+  //      error que 1) pero la pregunta no dice "porcentaje de X": dice
+  //      "margen sobre ventas", que ya fija la base sin nombrarla como
+  //      porcentaje. Solo se mira cuando la pregunta trae precio de venta Y
+  //      coste, y solo se señala si el denominador es exactamente el coste --
+  //      dividir entre cualquier otra cosa no es un error diagnosticable aqui.
+  var marginOnSales = MARGIN_ON_SALES.exec(q);
+  if (marginOnSales) {
+    var salePrice = firstQuantity(q, SALE_PRICE);
+    var unitCost = firstQuantity(q, UNIT_COST);
+    if (salePrice !== null && unitCost !== null && salePrice !== unitCost) {
+      var diff = salePrice - unitCost;
+      var m1b;
+      // Se recorren las dos formas de escribir la division: con el beneficio ya
+      // calculado ("30 / 90") y con la resta entre parentesis ("(120 - 90) / 90",
+      // que es como lo escribe casi siempre un modelo y que DIV no ve porque su
+      // numerador no es un numero).
+      DIFF_DIV.lastIndex = 0;
+      while ((m1b = DIFF_DIV.exec(body)) !== null) {
+        var left = toNumber(m1b[1]);
+        var right = toNumber(m1b[2]);
+        var den = toNumber(m1b[3]);
+        if (left === null || right === null || den === null) continue;
+        if (Math.abs((left - right) - diff) > 0.001) continue;
+        if (Math.abs(den - unitCost) > 0.001) continue;
+        findings.push({
+          tipo: 'base_del_margen_incorrecta',
+          baseDeclarada: (marginOnSales[1] || marginOnSales[2]) + ' (' + salePrice + ')',
+          baseUsada: 'el coste (' + unitCost + ')',
+          expresion: m1b[0],
+        });
+      }
+      DIV.lastIndex = 0;
+      while ((m1b = DIV.exec(body)) !== null) {
+        var num1b = toNumber(m1b[1]);
+        var den1b = toNumber(m1b[2]);
+        if (den1b === null || Math.abs(den1b - unitCost) > 0.001) continue;
+        // El numerador tiene que ser el beneficio (o el precio, si la
+        // respuesta calcula el ratio precio/coste): si no, la division habla
+        // de otra cosa y no es este error.
+        if (num1b === null) continue;
+        if (Math.abs(num1b - diff) > 0.001 && Math.abs(num1b - salePrice) > 0.001) continue;
+        findings.push({
+          tipo: 'base_del_margen_incorrecta',
+          baseDeclarada: (marginOnSales[1] || marginOnSales[2]) + ' (' + salePrice + ')',
+          baseUsada: 'el coste (' + unitCost + ')',
+          expresion: m1b[0],
         });
       }
     }

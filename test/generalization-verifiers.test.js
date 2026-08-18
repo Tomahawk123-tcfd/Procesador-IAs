@@ -222,6 +222,15 @@ test('code contract stays silent when the query does not ask for the property', 
   assert.deepEqual(verifyCodeContract('```python\ndef first_n(items, n):\n    return items[:n+1]\n```', 'Escribe una función en Python.'), []);
 });
 
+test('financial catches a margin divided by cost when the query asks it over sales', function () {
+  var query = 'Vendemos a 120 EUR con un coste de 90 EUR. ¿Cuál es el margen sobre ventas?';
+  assert.equal(verifyFinancialFormulas('El margen es (120 - 90) / 90 = 33,3%.', query).length, 1);
+  assert.deepEqual(verifyFinancialFormulas('El margen es (120 - 90) / 120 = 25%.', query), []);
+  // La misma cuenta sobre el coste es CORRECTA si lo que se pide es markup:
+  // el canal mira la base que pide la pregunta, no la formula en abstracto.
+  assert.deepEqual(verifyFinancialFormulas('El markup es (120 - 90) / 90 = 33,3%.', 'Vendemos a 120 EUR con un coste de 90 EUR. ¿Cuál es el markup?'), []);
+});
+
 test('grounding catches inverted ownership between the two parties of a clause', function () {
   var query = 'Resume esta cláusula de propiedad intelectual: "Todo trabajo derivado creado por el Contratista específicamente para este proyecto será propiedad del Cliente. Las herramientas, bibliotecas y metodologías preexistentes del Contratista permanecen siendo propiedad del Contratista."';
   var flawed = 'Todo el trabajo, incluidas las herramientas y metodologías preexistentes del Contratista, pasa a ser propiedad del Cliente al finalizar el proyecto.';
