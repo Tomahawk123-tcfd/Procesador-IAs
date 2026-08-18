@@ -41,6 +41,14 @@
 //                 generadas de forma independiente, exactamente la misma
 //                 maquina que ya se usa para comparar dos modelos locales
 //                 entre si.
+//   AUDIT      -> runBatchAudit(): VERIFY sobre un conjunto entero, con
+//                 puerta de calidad (2026-08-18). Es la instruccion que
+//                 convierte el procesador en infraestructura y no en una
+//                 utilidad manual: una empresa no verifica una respuesta,
+//                 verifica su conjunto de evaluacion en cada despliegue y
+//                 necesita un veredicto (pasa/no pasa) que pueda cortar un
+//                 CI. Mismo codigo determinista que VERIFY, nunca una
+//                 variante paralela que pudiera divergir.
 //   TELEMETRY  -> getVNPUStats(): estado real del hardware + historial de
 //                 instrucciones ejecutadas.
 //   ENSEMBLE   -> retirado a proposito (ver el case mas abajo): el ensemble
@@ -64,6 +72,7 @@ export var VNPU_OPCODES = {
   CROSSCHECK: 'vNPU.CROSSCHECK',
   AUTOVERIFY: 'vNPU.AUTOVERIFY',
   GROUND: 'vNPU.GROUND',
+  AUDIT: 'vNPU.AUDIT',
   ENSEMBLE: 'vNPU.ENSEMBLE',
   TELEMETRY: 'vNPU.TELEMETRY',
 };
@@ -621,6 +630,47 @@ export async function runVNPUInstruction(opcode, payload, options) {
         escalated: true,
       });
       return ccResult;
+    }
+
+    case VNPU_OPCODES.AUDIT: {
+      var { runBatchAudit } = await import('./batch-audit.js');
+      var auditResult = await runBatchAudit(payload);
+      var auditMs = Date.now() - startTime;
+      if (!auditResult.ok) return auditResult;
+      recordTelemetry({ opcode: VNPU_OPCODES.AUDIT, model: 'deterministic', provider: 'local', latencyMs: auditMs, success: true });
+      // Un solo evento por LOTE, no uno por elemento: el historial de
+      // calidad mide instrucciones, y un lote de mil elementos que generara
+      // mil eventos falsearia cualquier agregado posterior. El detalle por
+      // elemento ya viaja en la respuesta.
+      await recordQuality(options, {
+        opcode: VNPU_OPCODES.AUDIT,
+        draft: '',
+        verified: {
+          channels: Object.keys(auditResult.summary.channelHits),
+          channelErrors: Object.keys(auditResult.summary.channelErrors),
+          findingCounts: auditResult.summary.channelHits,
+          hasFindings: auditResult.summary.withFindings > 0,
+        },
+        verifyMs: auditMs,
+        totalMs: auditMs,
+      });
+      await recordAudit(options, {
+        opcode: VNPU_OPCODES.AUDIT,
+        // Lo que se firma de un lote es su resultado agregado y el veredicto:
+        // es lo que la empresa va a enseñar como evidencia de que ese
+        // despliegue paso la puerta.
+        draft: JSON.stringify(auditResult.summary),
+        query: 'gate=' + JSON.stringify(auditResult.gate),
+        verified: {
+          channels: Object.keys(auditResult.summary.channelHits),
+          channelErrors: Object.keys(auditResult.summary.channelErrors),
+          findingCounts: auditResult.summary.channelHits,
+          hasFindings: !auditResult.passed,
+        },
+        totalMs: auditMs,
+      });
+      auditResult.latencyMs = auditMs;
+      return auditResult;
     }
 
     case VNPU_OPCODES.TELEMETRY: {

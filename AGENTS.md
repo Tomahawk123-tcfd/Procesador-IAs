@@ -22,8 +22,26 @@ node bin/linkcore-cli.js vnpu CRITIQUE '{"draft":"tu borrador","query":"la pregu
 # Instrucción ROUTE: decide qué pieza ejecutaría una tarea, sin ejecutarla
 node bin/linkcore-cli.js vnpu ROUTE '{"query":"tu tarea","category":"code"}'
 
+# Instrucción AUDIT: pasa un conjunto de evaluación entero por los mismos
+# canales deterministas y devuelve veredicto contra una puerta de calidad.
+# El payload puede ir en un fichero (@ruta) porque un conjunto no cabe inline.
+# Sale con código 1 si la puerta no se supera: sirve para cortar un CI.
+node bin/linkcore-cli.js vnpu AUDIT @conjunto.json
+
 # Instrucción TELEMETRY: estado real del hardware + historial de instrucciones
 node bin/linkcore-cli.js vnpu TELEMETRY
+```
+
+Formato del conjunto de AUDIT. `expectFindings` es opcional, pero sin él el
+recall no es calculable y se informa como `null` en vez de inventarlo:
+
+```json
+{
+  "items": [
+    { "id": "caso-1", "query": "la pregunta original", "draft": "la respuesta a auditar", "expectFindings": true }
+  ],
+  "gate": { "minRecall": 0.9, "maxFalsePositiveRate": 0, "maxFindingRate": 0.05, "maxChannelErrors": 0 }
+}
 ```
 
 Si el comando `linkcore` está en el PATH (instalación normal vía `install/install.ps1`), se puede usar directamente sin `node bin/linkcore-cli.js`:
