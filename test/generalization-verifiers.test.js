@@ -8,7 +8,7 @@ import { verifySqlSemantics } from '../src/engine/sql-semantic-verify.js';
 import { verifySourceFidelity } from '../src/engine/source-fidelity-verify.js';
 import { verifyConfigIntent } from '../src/engine/config-intent-verify.js';
 import { verifyFinancialFormulas } from '../src/engine/financial-verify.js';
-import { verifyGrounding, verifyOwnershipAttribution, verifyReferenceRange } from '../src/engine/grounding-verify.js';
+import { verifyQueryGrounding, verifyOwnershipAttribution, verifyReferenceRange } from '../src/engine/query-grounding-verify.js';
 import { verifyCodeContract } from '../src/engine/code-contract-verify.js';
 
 // Cada caso lleva su pareja correcta: un verificador que solo acierta el fallo
@@ -146,24 +146,24 @@ test('grounding channel catches content attributed to the wrong party', function
   var query = 'Resume la cláusula: "El Proveedor será responsable de todos los daños directos derivados de su incumplimiento, con un límite máximo de 500.000 EUR. El Cliente será responsable de proporcionar acceso oportuno a los sistemas necesarios."';
   var flawed = 'El Proveedor, por su parte, es responsable de dar acceso a tiempo a los sistemas necesarios.';
   var correct = 'El Cliente, por su parte, es responsable de dar acceso a tiempo a los sistemas necesarios.';
-  assert.equal(verifyGrounding(flawed, query).length, 1);
-  assert.equal(verifyGrounding(correct, query).length, 0);
+  assert.equal(verifyQueryGrounding(flawed, query).length, 1);
+  assert.equal(verifyQueryGrounding(correct, query).length, 0);
 });
 
 test('grounding channel catches an exception of the source presented as absolute', function () {
   var query = 'Según esta definición: "\'Información Confidencial\' significa toda información técnica, comercial o financiera divulgada por una parte a la otra, EXCEPTO la información que ya sea de dominio público en el momento de la divulgación." ¿Un dato ya público está protegido?';
   var flawed = 'Sí. La definición cubre toda información técnica, comercial o financiera divulgada, y un dato ya público también queda protegido por esta cláusula.';
   var correct = 'No. La definición excluye explícitamente la información que ya sea de dominio público en el momento de la divulgación.';
-  assert.equal(verifyGrounding(flawed, query).length, 1);
-  assert.equal(verifyGrounding(correct, query).length, 0);
+  assert.equal(verifyQueryGrounding(flawed, query).length, 1);
+  assert.equal(verifyQueryGrounding(correct, query).length, 0);
 });
 
 test('grounding channel catches an enumeration value the source never lists', function () {
   var query = 'Según el manual aportado como fuente: "GET /v2/orders/{id} devuelve el pedido con el estado actual. El campo status puede ser: pending, shipped, delivered, cancelled." ¿Qué valores puede tener status?';
   var flawed = 'El campo status puede tomar los valores: pending, shipped, delivered, cancelled o refunded.';
   var correct = 'El campo status puede tomar los valores: pending, shipped, delivered o cancelled.';
-  assert.equal(verifyGrounding(flawed, query).length, 1);
-  assert.equal(verifyGrounding(correct, query).length, 0);
+  assert.equal(verifyQueryGrounding(flawed, query).length, 1);
+  assert.equal(verifyQueryGrounding(correct, query).length, 0);
 });
 
 // Regresiones de precision encontradas en revision del PR #1. Los cuatro casos

@@ -11,7 +11,7 @@ import { verifySqlSemantics } from './sql-semantic-verify.js';
 import { verifySourceFidelity } from './source-fidelity-verify.js';
 import { verifyConfigIntent } from './config-intent-verify.js';
 import { verifyFinancialFormulas } from './financial-verify.js';
-import { verifyGrounding } from './grounding-verify.js';
+import { verifyQueryGrounding } from './query-grounding-verify.js';
 import { verifyCodeContract } from './code-contract-verify.js';
 
 // Canales de verificacion que este pipeline sabe ejecutar. Se exporta para
@@ -297,7 +297,7 @@ export async function applyDeterministicVerification(text, query) {
     }
   } catch (e) { channelErrors.push('financial'); }
   try {
-    var groundingFindings = verifyGrounding(text, query);
+    var groundingFindings = verifyQueryGrounding(text, query);
     if (groundingFindings.length > 0) {
       hasFindings = true;
       note('grounding', groundingFindings.length);
