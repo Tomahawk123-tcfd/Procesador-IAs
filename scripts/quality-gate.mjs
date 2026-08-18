@@ -12,17 +12,43 @@
 // que no necesita ningun modelo seria un requisito inventado.
 //
 //   node scripts/quality-gate.mjs [ruta/al/conjunto.json] [--json]
+//
+// Comparacion entre despliegues (esto es lo que corta un merge que empeora la
+// calidad sin bajar el recall agregado):
+//
+//   node scripts/quality-gate.mjs --save main          # fija la referencia
+//   node scripts/quality-gate.mjs --compare main       # audita y compara
+//
+// `--compare` sale con 1 si algun caso que estaba limpio empieza a disparar,
+// aunque la puerta absoluta se supere.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { runBatchAudit } from '../src/engine/batch-audit.js';
+import { saveAuditSnapshot, loadAuditSnapshot, diffAuditSnapshots } from '../src/engine/audit-store.js';
+
+function flagValue(argv, name) {
+  var i = argv.indexOf(name);
+  if (i === -1) return null;
+  var next = argv[i + 1];
+  return next && next.charAt(0) !== '-' ? next : 'latest';
+}
 
 var here = path.dirname(fileURLToPath(import.meta.url));
 var args = process.argv.slice(2);
 var asJson = args.indexOf('--json') !== -1;
-var setPath = args.filter(function (a) { return a.charAt(0) !== '-'; })[0]
+var saveLabel = flagValue(args, '--save');
+var compareLabel = flagValue(args, '--compare');
+// El valor de --save/--compare no es la ruta del conjunto: se descarta de los
+// posicionales para que `--compare main conjunto.json` siga funcionando.
+var positionals = args.filter(function (a, i) {
+  if (a.charAt(0) === '-') return false;
+  var prev = args[i - 1];
+  return prev !== '--save' && prev !== '--compare';
+});
+var setPath = positionals[0]
   || path.join(here, '..', 'quality-gate', 'regression-set.json');
 
 var spec = JSON.parse(fs.readFileSync(setPath, 'utf-8'));
@@ -60,4 +86,35 @@ if (asJson) {
     console.log('  ' + v.regla + ': límite ' + v.limite + ', medido ' + (v.medido === null ? 'n/d' : v.medido));
   });
 }
-process.exit(result.passed ? 0 : 1);
+
+var setName = path.basename(setPath, '.json');
+var worseThanBaseline = false;
+if (compareLabel) {
+  var baseline = loadAuditSnapshot({ set: setName, label: compareLabel });
+  var diff = diffAuditSnapshots(baseline, {
+    label: 'candidato', passed: result.passed, summary: result.summary, results: result.results,
+  });
+  if (!diff.comparable) {
+    // Sin referencia no se inventa un veredicto de comparacion: se dice que no
+    // hay con que comparar y se deja que decida la puerta absoluta.
+    console.log('Comparación: no hay snapshot «' + compareLabel + '» para «' + setName + '» (' + diff.reason + ').');
+  } else {
+    console.log('Comparación contra «' + diff.baselineLabel + '» (' + diff.baselineSavedAt + ', ' + diff.compared + ' casos):');
+    diff.regressions.forEach(function (r) { console.log('  REGRESIÓN ' + r.id + ': ahora dispara ' + r.canales.join(', ')); });
+    diff.fixes.forEach(function (r) { console.log('  arreglado ' + r.id); });
+    if (diff.removed.length) console.log('  casos que ya no se auditan: ' + diff.removed.join(', '));
+    if (diff.added.length) console.log('  casos nuevos: ' + diff.added.join(', '));
+    if (diff.metrics.recall) console.log('  recall: ' + diff.metrics.recall.antes + ' → ' + diff.metrics.recall.ahora);
+    console.log(diff.worse ? '✗ Peor que la referencia.' : '✓ Sin regresiones respecto a la referencia.');
+    worseThanBaseline = diff.worse;
+  }
+}
+if (saveLabel) {
+  var saved = saveAuditSnapshot(result, {
+    set: setName,
+    label: saveLabel === 'latest' ? 'baseline' : saveLabel,
+    meta: { commit: process.env.GITHUB_SHA || null, ref: process.env.GITHUB_REF || null },
+  });
+  console.log('Snapshot guardado en ' + saved.path);
+}
+process.exit(result.passed && !worseThanBaseline ? 0 : 1);
