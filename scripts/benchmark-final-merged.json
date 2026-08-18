@@ -1,0 +1,1612 @@
+{
+  "generatedAt": "2026-08-17T21:42:11.615Z",
+  "cases": [
+    {
+      "id": "math-01",
+      "category": "math",
+      "query": "¿Cuánto es 23 por 17?",
+      "correctDraft": "23 x 17 = 391.",
+      "flawedDraft": "23 x 17 = 381.",
+      "flaw": "producto incorrecto (391 vs 381)"
+    },
+    {
+      "id": "math-02",
+      "category": "math",
+      "query": "¿Cuánto es 12,5 por 8?",
+      "correctDraft": "12,5 x 8 = 100.",
+      "flawedDraft": "12,5 x 8 = 105.",
+      "flaw": "producto incorrecto (100 vs 105)"
+    },
+    {
+      "id": "math-03",
+      "category": "math",
+      "query": "¿Cuánto es el 15% de 240?",
+      "correctDraft": "El 15% de 240 es 0,15 x 240 = 36.",
+      "flawedDraft": "El 15% de 240 es 0,15 x 240 = 38.",
+      "flaw": "resultado incorrecto (36 vs 38)"
+    },
+    {
+      "id": "math-04",
+      "category": "math",
+      "query": "¿Cuánto es 84 dividido entre 6?",
+      "correctDraft": "84 ÷ 6 = 14.",
+      "flawedDraft": "84 - 6 = 78.",
+      "flaw": "resuelve una resta en vez de la división pedida (el resultado, 78, es correcto para esa resta -- el fallo es la operación, no el número)"
+    },
+    {
+      "id": "math-05",
+      "category": "math",
+      "query": "Si inviertes 1000 euros al 5% anual compuesto durante 12 años, ¿cuánto tendrás aproximadamente?",
+      "correctDraft": "1000 x (1,05)^12 = 1795,86 euros aproximadamente.",
+      "flawedDraft": "1000 x (1,05)^12 = 1895,86 euros aproximadamente.",
+      "flaw": "interés compuesto mal calculado (1795,86 vs 1895,86)"
+    },
+    {
+      "id": "math-06",
+      "category": "math",
+      "query": "Un producto cuesta 480 euros con un descuento del 18%. ¿Cuál es el precio final?",
+      "correctDraft": "Descuento = 480 x 0,18 = 86,40 euros\nPrecio final = 480 - 86,40 = 393,60 euros",
+      "flawedDraft": "Descuento = 480 x 0,18 = 86,40 euros\nPrecio final = 480 - 86,40 = 383,60 euros",
+      "flaw": "precio final incorrecto (393,60 vs 383,60)",
+      "note": "GAP CONOCIDO, encontrado construyendo este benchmark: math-verify.js#verifyCalculations calcula un campo `label` por paso (linea 155-159, comentario que dice \"agrupar por etiqueta lo arregla\") pero ese campo NUNCA se usa para filtrar la comparación de pasos consecutivos (bucle real en líneas ~241-255) -- compara el descuento (86,40) contra el precio final (393,60), dos cantidades DISTINTAS, y grita un falso \"355% de diferencia\" incluso en el borrador CORRECTO. Confirmado en vivo antes de fijar este caso."
+    },
+    {
+      "id": "code-01",
+      "category": "code",
+      "query": "Escribe una función en Python que sume dos números.",
+      "correctDraft": "```python\ndef suma(a, b):\n    return a + b\n```",
+      "flawedDraft": "```python\ndef suma(a, b)\n    return a + b\n```",
+      "flaw": "falta \":\" tras la firma de la función -- SyntaxError real"
+    },
+    {
+      "id": "code-02",
+      "category": "code",
+      "query": "Escribe una función en JavaScript que compruebe si un número es par.",
+      "correctDraft": "```javascript\nfunction esPar(n) {\n  return n % 2 === 0;\n}\n```",
+      "flawedDraft": "```javascript\nfunction esPar(n) {\n  return n % 2 === 0;\n```",
+      "flaw": "falta la llave de cierre -- SyntaxError real"
+    },
+    {
+      "id": "code-03",
+      "category": "code",
+      "query": "Escribe una función en Python que devuelva los primeros n números pares empezando en 0.",
+      "correctDraft": "```python\ndef primeros_pares(n):\n    return [2*i for i in range(n)]\n```",
+      "flawedDraft": "```python\ndef primeros_pares(n):\n    return [2*i for i in range(n + 1)]\n```",
+      "flaw": "error de \"off-by-one\": devuelve n+1 elementos en vez de n -- puramente semántico, sin error de sintaxis",
+      "note": "GAP ESPERADO: code-verify.js solo comprueba sintaxis (ast.parse/vm.Script) y existencia de API de la stdlib -- nunca comportamiento. Este caso no tiene ningún error sintáctico que detectar.",
+      "expectedGap": true
+    },
+    {
+      "id": "code-04",
+      "category": "code",
+      "query": "Escribe código Python que compruebe si una ruta existe usando el módulo os.",
+      "correctDraft": "```python\nimport os\nprint(os.path.exists('/tmp/test'))\n```",
+      "flawedDraft": "```python\nimport os\nprint(os.path.is_valid('/tmp/test'))\n```",
+      "flaw": "os.path.is_valid no existe en la librería estándar de Python (API alucinada)"
+    },
+    {
+      "id": "code-05",
+      "category": "code",
+      "query": "Escribe un script bash que liste archivos .txt en el directorio actual.",
+      "correctDraft": "```bash\nfor f in *.txt; do\n  echo \"$f\"\ndone\n```",
+      "flawedDraft": "```bash\nfor f in *.txt; do\n  echo \"$f\"\n```",
+      "flaw": "falta \"done\" -- bucle for sin terminar, SyntaxError real de bash"
+    },
+    {
+      "id": "code-06",
+      "category": "code",
+      "query": "Genera un JSON de configuración con host y puerto.",
+      "correctDraft": "```json\n{\"host\": \"localhost\", \"port\": 8080}\n```",
+      "flawedDraft": "```json\n{\"host\": \"localhost\", \"port\": 8080,}\n```",
+      "flaw": "coma final -- JSON inválido"
+    },
+    {
+      "id": "fact-01",
+      "category": "factual",
+      "query": "¿Cuál es la capital de Canadá?",
+      "correctDraft": "La capital de Canadá es Ottawa.",
+      "flawedDraft": "La capital de Canadá es Toronto.",
+      "flaw": "capital incorrecta (Toronto es la ciudad más grande, no la capital)"
+    },
+    {
+      "id": "fact-02",
+      "category": "factual",
+      "query": "¿Cuál es la capital de Australia?",
+      "correctDraft": "La capital de Australia es Canberra.",
+      "flawedDraft": "La capital de Australia es Sídney.",
+      "flaw": "capital incorrecta (mismo caso documentado en vnpu-core.js sobre CROSSCHECK)"
+    },
+    {
+      "id": "fact-03",
+      "category": "factual",
+      "query": "Compara Python y Java en velocidad de desarrollo para prototipos rápidos.",
+      "correctDraft": "Python es mejor que Java para prototipar rápido gracias a su sintaxis concisa. Ambos lenguajes tienen usos distintos según el proyecto.",
+      "flawedDraft": "Python es mejor que Java para prototipar rápido gracias a su sintaxis concisa. Sin embargo, para ese mismo caso, Java es mejor que Python.",
+      "flaw": "autocontradicción directa: afirma \"Python mejor que Java\" y \"Java mejor que Python\" para la misma comparación"
+    },
+    {
+      "id": "fact-04",
+      "category": "factual",
+      "query": "¿En qué año llegó el ser humano a la Luna por primera vez?",
+      "correctDraft": "El ser humano llegó a la Luna por primera vez en 1969.",
+      "flawedDraft": "El ser humano llegó a la Luna por primera vez en 1968.",
+      "flaw": "año incorrecto (1969 vs 1968)"
+    },
+    {
+      "id": "fact-05",
+      "category": "factual",
+      "query": "¿Cuál es la montaña más alta del mundo?",
+      "correctDraft": "La montaña más alta del mundo es el monte Everest.",
+      "flawedDraft": "La montaña más alta del mundo es el K2.",
+      "flaw": "montaña incorrecta (K2 es la segunda más alta, no la primera)"
+    },
+    {
+      "id": "fact-06",
+      "category": "factual",
+      "query": "¿Cuál es la capital de Brasil?",
+      "correctDraft": "La capital de Brasil es Brasilia.",
+      "flawedDraft": "La capital de Brasil es Río de Janeiro.",
+      "flaw": "capital incorrecta (Río fue la capital histórica, ya no lo es)"
+    },
+    {
+      "id": "temporal-01",
+      "category": "temporal",
+      "query": "Si una empresa se fundó en 2010, ¿en qué año cumplió 15 años?",
+      "correctDraft": "15 años después de 2010 es 2025.",
+      "flawedDraft": "15 años después de 2010 es 2024.",
+      "flaw": "año incorrecto (2025 vs 2024)"
+    },
+    {
+      "id": "temporal-02",
+      "category": "temporal",
+      "query": "Si alguien nació en 1990, ¿en qué año cumplió 30 años?",
+      "correctDraft": "30 años después de 1990 es 2020.",
+      "flawedDraft": "30 años después de 1990 es 2019.",
+      "flaw": "año incorrecto (2020 vs 2019)"
+    },
+    {
+      "id": "temporal-03",
+      "category": "temporal",
+      "query": "Un edificio fue demolido 40 años antes de 2020. ¿En qué año se demolió?",
+      "correctDraft": "40 años antes de 2020 es 1980.",
+      "flawedDraft": "40 años antes de 2020 es 1970.",
+      "flaw": "año incorrecto, error mayor (1980 vs 1970)"
+    },
+    {
+      "id": "temporal-04",
+      "category": "temporal",
+      "query": "¿Qué año fue 25 años antes de 2015?",
+      "correctDraft": "25 años antes de 2015 es 1990.",
+      "flawedDraft": "25 años antes de 2015 es 1995.",
+      "flaw": "año incorrecto (1990 vs 1995)"
+    },
+    {
+      "id": "temporal-05",
+      "category": "temporal",
+      "query": "Resume brevemente qué año es actualmente y cuántos años han pasado desde el año 2000.",
+      "correctDraft": "El año actual es 2026. Han pasado 26 años desde el año 2000.",
+      "flawedDraft": "El año actual es 2026. Sin embargo, como dijimos antes, hoy es el año 2024.",
+      "flaw": "se contradice sobre cuál es el año actual (2026 vs 2024) dentro del mismo texto"
+    },
+    {
+      "id": "temporal-06",
+      "category": "temporal",
+      "query": "Una ley se aprobó 60 años después de 1950. ¿En qué año se aprobó?",
+      "correctDraft": "60 años después de 1950 es 2010.",
+      "flawedDraft": "60 años después de 1950 es 2015.",
+      "flaw": "año incorrecto (2010 vs 2015)"
+    },
+    {
+      "id": "reason-01",
+      "category": "reasoning",
+      "query": "Compras 3 camisetas a 15 euros cada una y 2 pantalones a 40 euros cada uno. ¿Cuánto pagas en total?",
+      "correctDraft": "3 camisetas a 15 euros son 45 euros. 2 pantalones a 40 euros son 80 euros. Total = 45 + 80 = 125 euros.",
+      "flawedDraft": "3 camisetas a 15 euros son 45 euros. 2 pantalones a 40 euros son 80 euros. Total = 45 + 80 = 135 euros.",
+      "flaw": "suma final incorrecta (125 vs 135)"
+    },
+    {
+      "id": "reason-02",
+      "category": "reasoning",
+      "query": "Explica brevemente la relación entre PostgreSQL, las bases de datos relacionales y SQL.",
+      "correctDraft": "PostgreSQL es una base de datos relacional. Una base de datos relacional es un sistema basado en SQL. PostgreSQL es un sistema basado en SQL.",
+      "flawedDraft": "PostgreSQL es una base de datos relacional. Una base de datos relacional es un sistema basado en SQL. PostgreSQL no es un sistema basado en SQL.",
+      "flaw": "contradicción transitiva: afirma A=B, B=C, pero también A≠C dentro del mismo texto",
+      "note": "GAP CONOCIDO: structural-verify.js#verifyStructuralCoherence existe y está diseñado exactamente para este patrón (cierre transitivo sobre afirmaciones \"X es Y\"), pero verification-pipeline.js#applyDeterministicVerification NUNCA lo importa -- solo usa math/code/output/coherence/temporal-verify. vNPU.VERIFY no puede detectar esto pase lo que pase. vNPU.CROSSCHECK tampoco lo cubre por esta vía (solo usa verifyCrossVoiceFacts/Numbers, que comparan ENTRE voces, no la coherencia interna de una sola voz) -- solo lo detectaría por casualidad si una voz local contradice directamente al draft sobre el mismo sujeto.",
+      "expectedGap": true
+    },
+    {
+      "id": "reason-03",
+      "category": "reasoning",
+      "query": "Ana tiene el doble de edad que Juan. Juan tiene 8 años. En 5 años, ¿cuántos años tendrán juntos entre los dos?",
+      "correctDraft": "Ana tiene 2 x 8 = 16 años. En 5 años, Ana tendrá 16 + 5 = 21 años y Juan tendrá 8 + 5 = 13 años. Juntos sumarán 21 + 13 = 34 años.",
+      "flawedDraft": "Ana tiene 2 x 8 = 16 años. En 5 años, Ana tendrá 16 + 5 = 21 años y Juan tendrá 8 + 5 = 13 años. Juntos sumarán 21 + 13 = 44 años.",
+      "flaw": "suma final incorrecta en el último paso (34 vs 44)"
+    },
+    {
+      "id": "reason-04",
+      "category": "reasoning",
+      "query": "Un rectángulo mide 12 metros de largo y 5 metros de ancho. ¿Cuál es su área y su perímetro?",
+      "correctDraft": "El área es 12 x 5 = 60 metros cuadrados y el perímetro es 2 x (12 + 5) = 34 metros.",
+      "flawedDraft": "El área es 12 x 5 = 60 metros cuadrados y el perímetro es 2 x (12 + 5) = 32 metros.",
+      "flaw": "perímetro incorrecto (34 vs 32), área correcta"
+    },
+    {
+      "id": "reason-05",
+      "category": "reasoning",
+      "query": "Marta es 5 años mayor que Pedro. Pedro es 3 años mayor que Luis. ¿Cuántos años mayor es Marta que Luis?",
+      "correctDraft": "Marta es mayor que Luis por 5 + 3 = 8 años.",
+      "flawedDraft": "Marta es mayor que Luis por 5 + 3 = 6 años.",
+      "flaw": "suma incorrecta (8 vs 6)"
+    },
+    {
+      "id": "reason-06",
+      "category": "reasoning",
+      "query": "Un tren sale a las 14:00 y tarda 3 horas en llegar. Si además se retrasa 45 minutos, ¿a qué hora llega?",
+      "correctDraft": "Sale a las 14:00 y tarda 3 horas, así que llegaría a las 17:00. Con 45 minutos de retraso adicional, la hora de llegada final es las 17:45.",
+      "flawedDraft": "Sale a las 14:00 y tarda 3 horas, así que llegaría a las 17:00. Con 45 minutos de retraso adicional, la hora de llegada final es las 18:15.",
+      "flaw": "hora final incorrecta (17:45 vs 18:15)",
+      "note": "GAP ESPERADO: ningún verificador de este proyecto cubre aritmética de horas (HH:MM) -- math-verify.js solo evalúa expresiones numéricas puras, temporal-verify.js solo cubre aritmética de AÑOS.",
+      "expectedGap": true
+    }
+  ],
+  "results": [
+    {
+      "opcode": "VERIFY",
+      "caseId": "math-01",
+      "category": "math",
+      "draftType": "correct",
+      "latencyMs": 19,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "23 x 17 = 391."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "math-01",
+      "category": "math",
+      "draftType": "flawed",
+      "latencyMs": 2,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de verificación matemática (calculado, no otra opinión de IA):\n  \"23 x 17\" = 391, pero el siguiente paso dice \"381.\" = 381 (2.6% de diferencia) — revisa este cálculo.\n\n23 x 17 = 381."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "math-02",
+      "category": "math",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "12,5 x 8 = 100."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "math-02",
+      "category": "math",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de verificación matemática (calculado, no otra opinión de IA):\n  \"12,5 x 8\" = 100, pero el siguiente paso dice \"105.\" = 105 (4.8% de diferencia) — revisa este cálculo.\n\n12,5 x 8 = 105."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "math-03",
+      "category": "math",
+      "draftType": "correct",
+      "latencyMs": 1,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "El 15% de 240 es 0,15 x 240 = 36."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "math-03",
+      "category": "math",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de verificación matemática (calculado, no otra opinión de IA):\n  \"0,15 x 240\" = 36, pero el siguiente paso dice \"38.\" = 38 (5.3% de diferencia) — revisa este cálculo.\n\nEl 15% de 240 es 0,15 x 240 = 38."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "math-04",
+      "category": "math",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "84 ÷ 6 = 14."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "math-04",
+      "category": "math",
+      "draftType": "flawed",
+      "latencyMs": 1,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso: la operación resuelta no es la que se pidió:\n  se pidió una división pero la respuesta resuelve una resta.\n\n84 - 6 = 78."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "math-05",
+      "category": "math",
+      "draftType": "correct",
+      "latencyMs": 1,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "1000 x (1,05)^12 = 1795,86 euros aproximadamente."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "math-05",
+      "category": "math",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de verificación matemática (calculado, no otra opinión de IA):\n  \"1000 x (1,05)^12\" = 1795.856326, pero el siguiente paso dice \"1895,86\" = 1895.86 (5.3% de diferencia) — revisa este cálculo.\n\n1000 x (1,05)^12 = 1895,86 euros aproximadamente."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "math-06",
+      "category": "math",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Descuento = 480 x 0,18 = 86,40 euros\nPrecio final = 480 - 86,40 = 393,60 euros"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "math-06",
+      "category": "math",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de verificación matemática (calculado, no otra opinión de IA):\n  \"480 - 86,40\" = 393.6, pero el siguiente paso dice \"383,60\" = 383.6 (2.6% de diferencia) — revisa este cálculo.\n\nDescuento = 480 x 0,18 = 86,40 euros\nPrecio final = 480 - 86,40 = 383,60 euros"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-01",
+      "category": "code",
+      "draftType": "correct",
+      "latencyMs": 747,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```python\ndef suma(a, b):\n    return a + b\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-01",
+      "category": "code",
+      "draftType": "flawed",
+      "latencyMs": 326,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de sintaxis (verificado con un compilador real, no otra opinión de IA):\n  [python] expected ':' (<unknown>, line 1)\n\n```python\ndef suma(a, b)\n    return a + b\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-02",
+      "category": "code",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```javascript\nfunction esPar(n) {\n  return n % 2 === 0;\n}\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-02",
+      "category": "code",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de sintaxis (verificado con un compilador real, no otra opinión de IA):\n  [javascript] Unexpected end of input\n\n```javascript\nfunction esPar(n) {\n  return n % 2 === 0;\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-03",
+      "category": "code",
+      "draftType": "correct",
+      "latencyMs": 642,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```python\ndef primeros_pares(n):\n    return [2*i for i in range(n)]\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-03",
+      "category": "code",
+      "draftType": "flawed",
+      "latencyMs": 639,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```python\ndef primeros_pares(n):\n    return [2*i for i in range(n + 1)]\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-04",
+      "category": "code",
+      "draftType": "correct",
+      "latencyMs": 669,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```python\nimport os\nprint(os.path.exists('/tmp/test'))\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-04",
+      "category": "code",
+      "draftType": "flawed",
+      "latencyMs": 637,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de sintaxis (verificado con un compilador real, no otra opinión de IA):\n  [python] Llamada a API que no existe en la libreria estandar instalada: os.path.is_valid\n\n```python\nimport os\nprint(os.path.is_valid('/tmp/test'))\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-05",
+      "category": "code",
+      "draftType": "correct",
+      "latencyMs": 64,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```bash\nfor f in *.txt; do\n  echo \"$f\"\ndone\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-05",
+      "category": "code",
+      "draftType": "flawed",
+      "latencyMs": 43,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de sintaxis (verificado con un compilador real, no otra opinión de IA):\n  [bash] <script>: line 3: syntax error: unexpected end of file from `for' command on line 1\n\n```bash\nfor f in *.txt; do\n  echo \"$f\"\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-06",
+      "category": "code",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```json\n{\"host\": \"localhost\", \"port\": 8080}\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-06",
+      "category": "code",
+      "draftType": "flawed",
+      "latencyMs": 1,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de sintaxis (verificado con un compilador real, no otra opinión de IA):\n  [json] Expected double-quoted property name in JSON at position 35 (line 1 column 36)\n\n```json\n{\"host\": \"localhost\", \"port\": 8080,}\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "fact-01",
+      "category": "factual",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "La capital de Canadá es Ottawa."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "fact-01",
+      "category": "factual",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "La capital de Canadá es Toronto."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "fact-02",
+      "category": "factual",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "La capital de Australia es Canberra."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "fact-02",
+      "category": "factual",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "La capital de Australia es Sídney."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "fact-03",
+      "category": "factual",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Python es mejor que Java para prototipar rápido gracias a su sintaxis concisa. Ambos lenguajes tienen usos distintos según el proyecto."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "fact-03",
+      "category": "factual",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de coherencia (el texto se contradice sobre la misma comparación):\n  \"Python es mejor que Java para prototipar rápido gracias a su sintaxis concisa\" pero en otro punto dice \"Java es mejor que Python\"\n\nPython es mejor que Java para prototipar rápido gracias a su sintaxis concisa. Sin embargo, para ese mismo caso, Java es mejor que Python."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "fact-04",
+      "category": "factual",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "El ser humano llegó a la Luna por primera vez en 1969."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "fact-04",
+      "category": "factual",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "El ser humano llegó a la Luna por primera vez en 1968."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "fact-05",
+      "category": "factual",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "La montaña más alta del mundo es el monte Everest."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "fact-05",
+      "category": "factual",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "La montaña más alta del mundo es el K2."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "fact-06",
+      "category": "factual",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "La capital de Brasil es Brasilia."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "fact-06",
+      "category": "factual",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "La capital de Brasil es Río de Janeiro."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "temporal-01",
+      "category": "temporal",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "15 años después de 2010 es 2025."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "temporal-01",
+      "category": "temporal",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso temporal (calculado, no otra opinión de IA):\n  \"15 años después de 2010 es 2024\" -- 15 años después de 2010 es 2025, no 2024.\n\n15 años después de 2010 es 2024."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "temporal-02",
+      "category": "temporal",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "30 años después de 1990 es 2020."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "temporal-02",
+      "category": "temporal",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso temporal (calculado, no otra opinión de IA):\n  \"30 años después de 1990 es 2019\" -- 30 años después de 1990 es 2020, no 2019.\n\n30 años después de 1990 es 2019."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "temporal-03",
+      "category": "temporal",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "40 años antes de 2020 es 1980."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "temporal-03",
+      "category": "temporal",
+      "draftType": "flawed",
+      "latencyMs": 1,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso temporal (calculado, no otra opinión de IA):\n  \"40 años antes de 2020 es 1970\" -- 40 años antes de 2020 es 1980, no 1970.\n\n40 años antes de 2020 es 1970."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "temporal-04",
+      "category": "temporal",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "25 años antes de 2015 es 1990."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "temporal-04",
+      "category": "temporal",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso temporal (calculado, no otra opinión de IA):\n  \"25 años antes de 2015 es 1995\" -- 25 años antes de 2015 es 1990, no 1995.\n\n25 años antes de 2015 es 1995."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "temporal-05",
+      "category": "temporal",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "El año actual es 2026. Han pasado 26 años desde el año 2000."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "temporal-05",
+      "category": "temporal",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso temporal (calculado, no otra opinión de IA):\n  el texto afirma más de un \"año actual\" distinto: 2024 (\"hoy es el año 2024\") vs. 2026 (\"El año actual es 2026\").\n\nEl año actual es 2026. Sin embargo, como dijimos antes, hoy es el año 2024."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "temporal-06",
+      "category": "temporal",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "60 años después de 1950 es 2010."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "temporal-06",
+      "category": "temporal",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso temporal (calculado, no otra opinión de IA):\n  \"60 años después de 1950 es 2015\" -- 60 años después de 1950 es 2010, no 2015.\n\n60 años después de 1950 es 2015."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "reason-01",
+      "category": "reasoning",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "3 camisetas a 15 euros son 45 euros. 2 pantalones a 40 euros son 80 euros. Total = 45 + 80 = 125 euros."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "reason-01",
+      "category": "reasoning",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de verificación matemática (calculado, no otra opinión de IA):\n  \"45 + 80\" = 125, pero el siguiente paso dice \"135\" = 135 (7.4% de diferencia) — revisa este cálculo.\n\n3 camisetas a 15 euros son 45 euros. 2 pantalones a 40 euros son 80 euros. Total = 45 + 80 = 135 euros."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "reason-02",
+      "category": "reasoning",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "PostgreSQL es una base de datos relacional. Una base de datos relacional es un sistema basado en SQL. PostgreSQL es un sistema basado en SQL."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "reason-02",
+      "category": "reasoning",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "PostgreSQL es una base de datos relacional. Una base de datos relacional es un sistema basado en SQL. PostgreSQL no es un sistema basado en SQL."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "reason-03",
+      "category": "reasoning",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Ana tiene 2 x 8 = 16 años. En 5 años, Ana tendrá 16 + 5 = 21 años y Juan tendrá 8 + 5 = 13 años. Juntos sumarán 21 + 13 = 34 años."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "reason-03",
+      "category": "reasoning",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de verificación matemática (calculado, no otra opinión de IA):\n  \"21 + 13\" = 34, pero el siguiente paso dice \"44\" = 44 (22.7% de diferencia) — revisa este cálculo.\n\nAna tiene 2 x 8 = 16 años. En 5 años, Ana tendrá 16 + 5 = 21 años y Juan tendrá 8 + 5 = 13 años. Juntos sumarán 21 + 13 = 44 años."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "reason-04",
+      "category": "reasoning",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "El área es 12 x 5 = 60 metros cuadrados y el perímetro es 2 x (12 + 5) = 34 metros."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "reason-04",
+      "category": "reasoning",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de verificación matemática (calculado, no otra opinión de IA):\n  \"2 x (12 + 5)\" = 34, pero el siguiente paso dice \"32\" = 32 (6.3% de diferencia) — revisa este cálculo.\n\nEl área es 12 x 5 = 60 metros cuadrados y el perímetro es 2 x (12 + 5) = 32 metros."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "reason-05",
+      "category": "reasoning",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Marta es mayor que Luis por 5 + 3 = 8 años."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "reason-05",
+      "category": "reasoning",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de verificación matemática (calculado, no otra opinión de IA):\n  \"5 + 3\" = 8, pero el siguiente paso dice \"6\" = 6 (33.3% de diferencia) — revisa este cálculo.\n\nMarta es mayor que Luis por 5 + 3 = 6 años."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "reason-06",
+      "category": "reasoning",
+      "draftType": "correct",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Sale a las 14:00 y tarda 3 horas, así que llegaría a las 17:00. Con 45 minutos de retraso adicional, la hora de llegada final es las 17:45."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "reason-06",
+      "category": "reasoning",
+      "draftType": "flawed",
+      "latencyMs": 0,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Sale a las 14:00 y tarda 3 horas, así que llegaría a las 17:00. Con 45 minutos de retraso adicional, la hora de llegada final es las 18:15."
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "math-01",
+      "category": "math",
+      "draftType": "correct",
+      "latencyMs": 146857,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.6242640687119285,
+          "confidence": "moderate",
+          "avgSimilarity": 0.6242640687119285,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "math-01",
+      "category": "math",
+      "draftType": "flawed",
+      "latencyMs": 165394,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [
+          {
+            "modelA": "benchmark-claude",
+            "valueA": 381,
+            "contextA": "23 x 17 = 381",
+            "modelB": "qwen2.5:1.5b",
+            "valueB": 391,
+            "contextB": "23 por 17 es igual a 391",
+            "diffPct": 2.6,
+            "questionOverlap": 0.286
+          }
+        ],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.3971284267603333,
+          "confidence": "low",
+          "avgSimilarity": 0.3971284267603333,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "math-02",
+      "category": "math",
+      "draftType": "correct",
+      "latencyMs": 150774,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.1773939558192525,
+          "confidence": "low",
+          "avgSimilarity": 0.1773939558192525,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "math-02",
+      "category": "math",
+      "draftType": "flawed",
+      "latencyMs": 88,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.1773939558192525,
+          "confidence": "low",
+          "avgSimilarity": 0.1773939558192525,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "code-01",
+      "category": "code",
+      "draftType": "correct",
+      "latencyMs": 121307,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.20365021327402194,
+          "confidence": "low",
+          "avgSimilarity": 0.20365021327402194,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "code-01",
+      "category": "code",
+      "draftType": "flawed",
+      "latencyMs": 42866,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.20365021327402194,
+          "confidence": "low",
+          "avgSimilarity": 0.20365021327402194,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "code-02",
+      "category": "code",
+      "draftType": "correct",
+      "latencyMs": 87277,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.25233385854379076,
+          "confidence": "low",
+          "avgSimilarity": 0.25233385854379076,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "code-02",
+      "category": "code",
+      "draftType": "flawed",
+      "latencyMs": 39,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.25233385854379076,
+          "confidence": "low",
+          "avgSimilarity": 0.25233385854379076,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "fact-01",
+      "category": "factual",
+      "draftType": "correct",
+      "latencyMs": 22936,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 1,
+          "confidence": "high",
+          "avgSimilarity": 1,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "fact-01",
+      "category": "factual",
+      "draftType": "flawed",
+      "latencyMs": 52,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "factDisagreements": [
+          {
+            "subject": "La capital de Canadá",
+            "modelA": "benchmark-claude",
+            "predicateA": "Toronto",
+            "modelB": "qwen2.5:1.5b",
+            "predicateB": "Ottawa"
+          }
+        ],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.7857142857142858,
+          "confidence": "medium",
+          "avgSimilarity": 0.7857142857142858,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "fact-02",
+      "category": "factual",
+      "draftType": "correct",
+      "latencyMs": 1684,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 1,
+          "confidence": "high",
+          "avgSimilarity": 1,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "fact-02",
+      "category": "factual",
+      "draftType": "flawed",
+      "latencyMs": 21,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "factDisagreements": [
+          {
+            "subject": "La capital de Australia",
+            "modelA": "benchmark-claude",
+            "predicateA": "Sídney",
+            "modelB": "qwen2.5:1.5b",
+            "predicateB": "Canberra"
+          }
+        ],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.7857142857142858,
+          "confidence": "medium",
+          "avgSimilarity": 0.7857142857142858,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "temporal-01",
+      "category": "temporal",
+      "draftType": "correct",
+      "latencyMs": 67815,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.3267786838055363,
+          "confidence": "low",
+          "avgSimilarity": 0.3267786838055363,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "temporal-01",
+      "category": "temporal",
+      "draftType": "flawed",
+      "latencyMs": 54756,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.24067224814826993,
+          "confidence": "low",
+          "avgSimilarity": 0.24067224814826993,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "temporal-02",
+      "category": "temporal",
+      "draftType": "correct",
+      "latencyMs": 58409,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.35672232497824485,
+          "confidence": "low",
+          "avgSimilarity": 0.35672232497824485,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "temporal-02",
+      "category": "temporal",
+      "draftType": "flawed",
+      "latencyMs": 42,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.261827458019398,
+          "confidence": "low",
+          "avgSimilarity": 0.261827458019398,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "reason-01",
+      "category": "reasoning",
+      "draftType": "correct",
+      "latencyMs": 110246,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.4375948817776179,
+          "confidence": "low",
+          "avgSimilarity": 0.4375948817776179,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "reason-01",
+      "category": "reasoning",
+      "draftType": "flawed",
+      "latencyMs": 92608,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [
+          {
+            "modelA": "benchmark-claude",
+            "valueA": 135,
+            "contextA": "Total = 45 + 80 = 135 euros",
+            "modelB": "qwen2.5:1.5b",
+            "valueB": 125,
+            "contextB": "Total: 45 + 80 = 125 euros",
+            "diffPct": 7.4,
+            "questionOverlap": 0.667
+          }
+        ],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.405775262171855,
+          "confidence": "low",
+          "avgSimilarity": 0.405775262171855,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "reason-02",
+      "category": "reasoning",
+      "draftType": "correct",
+      "latencyMs": 106848,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.5186086738808224,
+          "confidence": "low",
+          "avgSimilarity": 0.5186086738808224,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "reason-02",
+      "category": "reasoning",
+      "draftType": "flawed",
+      "latencyMs": 1149,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.5132643018674121,
+          "confidence": "low",
+          "avgSimilarity": 0.5132643018674121,
+          "contradictionCount": 0
+        }
+      }
+    }
+  ]
+}

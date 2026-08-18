@@ -1,0 +1,119 @@
+{
+  "generatedAt": "2026-08-17T20:32:17.681Z",
+  "cases": [
+    {
+      "id": "code-01",
+      "category": "code",
+      "query": "Escribe una función en Python que sume dos números.",
+      "correctDraft": "```python\ndef suma(a, b):\n    return a + b\n```",
+      "flawedDraft": "```python\ndef suma(a, b)\n    return a + b\n```",
+      "flaw": "falta \":\" tras la firma de la función -- SyntaxError real"
+    },
+    {
+      "id": "code-02",
+      "category": "code",
+      "query": "Escribe una función en JavaScript que compruebe si un número es par.",
+      "correctDraft": "```javascript\nfunction esPar(n) {\n  return n % 2 === 0;\n}\n```",
+      "flawedDraft": "```javascript\nfunction esPar(n) {\n  return n % 2 === 0;\n```",
+      "flaw": "falta la llave de cierre -- SyntaxError real"
+    }
+  ],
+  "results": [
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "code-01",
+      "category": "code",
+      "draftType": "correct",
+      "latencyMs": 121307,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.20365021327402194,
+          "confidence": "low",
+          "avgSimilarity": 0.20365021327402194,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "code-01",
+      "category": "code",
+      "draftType": "flawed",
+      "latencyMs": 42866,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.20365021327402194,
+          "confidence": "low",
+          "avgSimilarity": 0.20365021327402194,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "code-02",
+      "category": "code",
+      "draftType": "correct",
+      "latencyMs": 87277,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.25233385854379076,
+          "confidence": "low",
+          "avgSimilarity": 0.25233385854379076,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "code-02",
+      "category": "code",
+      "draftType": "flawed",
+      "latencyMs": 39,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.25233385854379076,
+          "confidence": "low",
+          "avgSimilarity": 0.25233385854379076,
+          "contradictionCount": 0
+        }
+      }
+    }
+  ]
+}

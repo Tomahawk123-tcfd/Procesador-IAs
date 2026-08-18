@@ -1,0 +1,274 @@
+// Independent test corpus for LinkCore's error-detection layer.
+//
+// Written WITHOUT reading any of LinkCore's detector/verification source
+// (src/engine/*-verify.js, verification-pipeline.js, vnpu-core.js) and
+// without reading the earlier self-authored corpus (benchmark-corpus-self-authored.mjs)
+// or its results (benchmark-verification.mjs, benchmark-verification-results.json,
+// bench-verify-full.json). The goal is a corpus the detector was never tuned
+// against, so results here are real evidence of generalization rather than
+// confirmation of what it already knows to look for.
+//
+// Each case is a realistic user query plus two draft answers a fluent AI
+// assistant could plausibly produce: one correct, one with exactly one
+// concrete, unambiguous error injected somewhere plausible.
+
+export var CASES = [
+  // ---------------------------------------------------------------------
+  // math (arithmetic, algebra, compounding, percentages)
+  // ---------------------------------------------------------------------
+  {
+    id: 'math-01',
+    category: 'math',
+    query: 'I have a 30-year mortgage of $340,000 at a fixed 6.25% annual rate. Roughly how much total interest will I pay over the life of the loan if I never make extra payments? Just give me the ballpark monthly payment and total interest.',
+    correctDraft: 'Using the standard amortization formula for a $340,000 loan at 6.25% annual (0.520833% monthly) over 360 months, the monthly payment works out to about $2,094. Over 30 years that is 360 × $2,094 ≈ $753,840 total paid, so total interest paid is roughly $753,840 − $340,000 ≈ $413,840.',
+    flawedDraft: 'Using the standard amortization formula for a $340,000 loan at 6.25% annual (0.520833% monthly) over 360 months, the monthly payment works out to about $2,094. Over 30 years that is 360 × $2,094 ≈ $753,840 total paid, so total interest paid is roughly $753,840 − $340,000 ≈ $313,840.',
+    flaw: 'Subtraction error: 753,840 minus 340,000 is 413,840, not 313,840 (off by exactly 100,000).',
+  },
+  {
+    id: 'math-02',
+    category: 'math',
+    query: 'A café marks up its beans by 65% over wholesale cost. If a bag sells for $18.50, what did the café pay wholesale for it?',
+    correctDraft: 'If wholesale cost is C and markup is 65%, then selling price = C × 1.65. So C = 18.50 / 1.65 ≈ $11.21. The café paid about $11.21 wholesale for a bag that sells for $18.50.',
+    flawedDraft: 'If wholesale cost is C and markup is 65%, then selling price = C × 1.65. So C = 18.50 × 1.65 ≈ $30.53. The café paid about $30.53 wholesale for a bag that sells for $18.50.',
+    flaw: 'Used multiplication instead of division to invert the markup formula, giving a wholesale cost higher than the retail price.',
+  },
+  {
+    id: 'math-03',
+    category: 'math',
+    query: 'We\'re splitting a dinner bill of $284.70 six ways, plus we want to leave a 20% tip on the pre-tip total. How much does each person owe?',
+    correctDraft: 'Tip = 20% of $284.70 = $56.94. Total with tip = $284.70 + $56.94 = $341.64. Split six ways: $341.64 / 6 = $56.94 per person.',
+    flawedDraft: 'Tip = 20% of $284.70 = $56.94. Total with tip = $284.70 + $56.94 = $341.64. Split six ways: $341.64 / 6 = $59.94 per person.',
+    flaw: 'Division error: 341.64 / 6 is 56.94, not 59.94 (transposed digits in the final answer).',
+  },
+  {
+    id: 'math-04',
+    category: 'math',
+    query: 'My savings account has $8,200 and earns 4.1% annual interest, compounded monthly. About how much will I have after 3 years, assuming no deposits or withdrawals?',
+    correctDraft: 'Monthly rate = 4.1%/12 ≈ 0.3417%. Number of periods = 36. Future value = 8200 × (1 + 0.003417)^36 ≈ 8200 × 1.1303 ≈ $9,268.',
+    flawedDraft: 'Monthly rate = 4.1%/12 ≈ 0.3417%. Number of periods = 36. Future value = 8200 × (1 + 0.003417)^36 ≈ 8200 × 1.1303 ≈ $10,268.',
+    flaw: 'Arithmetic slip in the final multiplication: 8200 × 1.1303 is about 9,268, not 10,268 (off by roughly 1,000).',
+  },
+  {
+    id: 'math-05',
+    category: 'math',
+    query: 'A recipe calls for a ratio of 3 parts flour to 2 parts sugar. If I want to use 750g of flour total, how much sugar do I need?',
+    correctDraft: 'The ratio is flour:sugar = 3:2, so sugar = flour × (2/3). With 750g flour, sugar = 750 × 2/3 = 500g.',
+    flawedDraft: 'The ratio is flour:sugar = 3:2, so sugar = flour × (2/3). With 750g flour, sugar = 750 × 3/2 = 1125g.',
+    flaw: 'Inverted the ratio fraction (used 3/2 instead of 2/3), giving more sugar than flour despite flour being the larger part of the ratio.',
+  },
+  // ---------------------------------------------------------------------
+  // code (real bugs: syntax, logic, off-by-one, wrong API)
+  // ---------------------------------------------------------------------
+  {
+    id: 'code-01',
+    category: 'code',
+    query: 'Write a Python function that returns the second-largest number in a list of integers (assume no duplicates, length >= 2).',
+    correctDraft: 'def second_largest(nums):\n    largest = second = float("-inf")\n    for n in nums:\n        if n > largest:\n            second = largest\n            largest = n\n        elif n > second:\n            second = n\n    return second',
+    flawedDraft: 'def second_largest(nums):\n    largest = second = float("-inf")\n    for n in nums:\n        if n > largest:\n            second = largest\n            largest = n\n        elif n < second:\n            second = n\n    return second',
+    flaw: 'The elif condition was changed from `n > second` to `n < second`, so the function will fail to update `second` for any valid candidate value, usually returning `-inf`.',
+  },
+  {
+    id: 'code-02',
+    category: 'code',
+    query: 'In JavaScript, write a function that debounces another function by a given delay in milliseconds.',
+    correctDraft: 'function debounce(fn, delay) {\n  let timer = null;\n  return function (...args) {\n    clearTimeout(timer);\n    timer = setTimeout(() => fn.apply(this, args), delay);\n  };\n}',
+    flawedDraft: 'function debounce(fn, delay) {\n  let timer = null;\n  return function (...args) {\n    timer = setTimeout(() => fn.apply(this, args), delay);\n  };\n}',
+    flaw: 'The `clearTimeout(timer)` call was dropped, so previous pending calls are never cancelled — the function stops debouncing and just delays every call independently.',
+  },
+  {
+    id: 'code-03',
+    category: 'code',
+    query: 'Give me a SQL query to find the top 5 customers by total order amount from an `orders` table with columns `customer_id` and `amount`.',
+    correctDraft: 'SELECT customer_id, SUM(amount) AS total_spent\nFROM orders\nGROUP BY customer_id\nORDER BY total_spent DESC\nLIMIT 5;',
+    flawedDraft: 'SELECT customer_id, SUM(amount) AS total_spent\nFROM orders\nGROUP BY customer_id\nORDER BY total_spent ASC\nLIMIT 5;',
+    flaw: 'Used ORDER BY ... ASC instead of DESC, so the query returns the 5 lowest-spending customers instead of the top 5.',
+  },
+  {
+    id: 'code-04',
+    category: 'code',
+    query: 'Write a small Python snippet that reads a CSV file called sales.csv and prints the total of the "amount" column using the csv module (not pandas).',
+    correctDraft: 'import csv\n\ntotal = 0.0\nwith open("sales.csv", newline="") as f:\n    reader = csv.DictReader(f)\n    for row in reader:\n        total += float(row["amount"])\nprint(total)',
+    flawedDraft: 'import csv\n\ntotal = 0.0\nwith open("sales.csv", newline="") as f:\n    reader = csv.DictReader(f)\n    for row in reader:\n        total += float(row["Amount"])\nprint(total)',
+    flaw: 'Column name capitalization mismatch: reads `row["Amount"]` (capital A) while the CSV header is `amount`, which raises a KeyError at runtime with a standard csv.DictReader.',
+  },
+  {
+    id: 'code-05',
+    category: 'code',
+    query: 'In Java, write a method that checks whether a given int array is sorted in non-decreasing order.',
+    correctDraft: 'public static boolean isSorted(int[] arr) {\n    for (int i = 1; i < arr.length; i++) {\n        if (arr[i] < arr[i - 1]) {\n            return false;\n        }\n    }\n    return true;\n}',
+    flawedDraft: 'public static boolean isSorted(int[] arr) {\n    for (int i = 1; i <= arr.length; i++) {\n        if (arr[i] < arr[i - 1]) {\n            return false;\n        }\n    }\n    return true;\n}',
+    flaw: 'Off-by-one bug: the loop condition uses `i <= arr.length` instead of `i < arr.length`, causing an ArrayIndexOutOfBoundsException on the last iteration.',
+  },
+  // ---------------------------------------------------------------------
+  // factual (general knowledge, plausible but wrong specifics)
+  // ---------------------------------------------------------------------
+  {
+    id: 'factual-01',
+    category: 'factual',
+    query: 'What is the boiling point of water at standard atmospheric pressure, in Celsius, and why does it change at high altitude?',
+    correctDraft: 'At standard atmospheric pressure (1 atm, sea level), water boils at 100°C. At high altitude, atmospheric pressure is lower, so water boils at a lower temperature — for example, around 90-93°C at 2,000-3,000 meters — because less pressure is needed for vapor bubbles to overcome the surrounding air pressure.',
+    flawedDraft: 'At standard atmospheric pressure (1 atm, sea level), water boils at 100°C. At high altitude, atmospheric pressure is lower, so water boils at a higher temperature — for example, around 105-108°C at 2,000-3,000 meters — because less pressure is needed for vapor bubbles to overcome the surrounding air pressure.',
+    flaw: 'States boiling point rises at altitude and gives temperatures above 100°C; in reality lower pressure at altitude makes water boil at a LOWER temperature.',
+  },
+  {
+    id: 'factual-02',
+    category: 'factual',
+    query: 'Who wrote the novel "One Hundred Years of Solitude" and what country was he from?',
+    correctDraft: '"One Hundred Years of Solitude" (Cien años de soledad) was written by Gabriel García Márquez, a Colombian author. It was first published in 1967 and is considered a landmark work of magical realism.',
+    flawedDraft: '"One Hundred Years of Solitude" (Cien años de soledad) was written by Gabriel García Márquez, a Peruvian author. It was first published in 1967 and is considered a landmark work of magical realism.',
+    flaw: 'Gabriel García Márquez was Colombian, not Peruvian (Peru is the home country of a different Nobel laureate, Mario Vargas Llosa).',
+  },
+  {
+    id: 'factual-03',
+    category: 'factual',
+    query: 'What is the chemical symbol for potassium, and where does the symbol come from given the English name doesn\'t start with that letter?',
+    correctDraft: 'The chemical symbol for potassium is K. It comes from "kalium", the Latin/Neo-Latin name for the element, which is why the symbol doesn\'t match the English name "potassium".',
+    flawedDraft: 'The chemical symbol for potassium is P. It comes from "kalium", the Latin/Neo-Latin name for the element, which is why the symbol doesn\'t match the English name "potassium".',
+    flaw: 'Potassium\'s symbol is K (from "kalium"), not P — P is the symbol for phosphorus, a different element. The stated origin (kalium) is correct but is inconsistent with the symbol given.',
+  },
+  {
+    id: 'factual-04',
+    category: 'factual',
+    query: 'Which ocean is the largest by surface area, and roughly what fraction of Earth\'s ocean surface does it cover?',
+    correctDraft: 'The Pacific Ocean is the largest by surface area, covering roughly 46% of the Earth\'s total ocean surface — more than all the land area on Earth combined.',
+    flawedDraft: 'The Atlantic Ocean is the largest by surface area, covering roughly 46% of the Earth\'s total ocean surface — more than all the land area on Earth combined.',
+    flaw: 'The Pacific Ocean, not the Atlantic, is the largest ocean by surface area; the Atlantic is the second-largest.',
+  },
+  {
+    id: 'factual-05',
+    category: 'factual',
+    query: 'What is the standard voltage of a typical AA alkaline battery when new, and how does that compare to a AAA?',
+    correctDraft: 'A fresh AA alkaline battery is rated at 1.5 volts. A AAA alkaline battery is also rated at 1.5 volts — the size difference (AA vs AAA) affects capacity (mAh) and physical dimensions, not the nominal voltage.',
+    flawedDraft: 'A fresh AA alkaline battery is rated at 1.5 volts. A AAA alkaline battery is rated at 9 volts — the size difference (AA vs AAA) affects capacity (mAh) and physical dimensions, not the nominal voltage.',
+    flaw: 'AAA batteries are also 1.5 volts, same as AA; 9 volts describes a completely different battery format (the rectangular PP3/9V battery), not AAA.',
+  },
+  // ---------------------------------------------------------------------
+  // temporal (dates, time zones, schedules, logical date reasoning)
+  // ---------------------------------------------------------------------
+  {
+    id: 'temporal-01',
+    category: 'temporal',
+    query: 'If a flight departs Los Angeles at 11:45 PM PST on a Tuesday and the flight duration is 5 hours 30 minutes, what day and time does it land, still in PST?',
+    correctDraft: 'Departure: 11:45 PM Tuesday PST. Adding 5 hours 30 minutes: 11:45 PM + 5:30 = 5:15 AM, and since we cross midnight, the day rolls over to Wednesday. So it lands at 5:15 AM Wednesday, PST.',
+    flawedDraft: 'Departure: 11:45 PM Tuesday PST. Adding 5 hours 30 minutes: 11:45 PM + 5:30 = 5:15 AM, and since we cross midnight, the day rolls over to Wednesday. So it lands at 5:15 AM Thursday, PST.',
+    flaw: 'The arrival day should be Wednesday (one day after Tuesday), not Thursday — the math for the time (5:15 AM) is correct but the day was advanced by one extra day.',
+  },
+  {
+    id: 'temporal-02',
+    category: 'temporal',
+    query: 'A project started on March 15 and is scheduled to take 45 calendar days. What is the deadline date (assume non-leap year)?',
+    correctDraft: 'March has 31 days, so from March 15 there are 16 days left in March (March 16-31). That leaves 45 - 16 = 29 days remaining, which lands on April 29. So the deadline is April 29.',
+    flawedDraft: 'March has 31 days, so from March 15 there are 16 days left in March (March 16-31). That leaves 45 - 16 = 29 days remaining, which lands on April 29. So the deadline is April 30.',
+    flaw: 'The stated calculation correctly lands on April 29, but the final answer says April 30, contradicting the shown work by one day.',
+  },
+  {
+    id: 'temporal-03',
+    category: 'temporal',
+    query: 'It\'s 2:00 PM in New York (Eastern Time) right now. What time is it in London, assuming both are currently observing their respective daylight saving time?',
+    correctDraft: 'During daylight saving time, New York (Eastern Daylight Time, UTC-4) is 5 hours behind London (British Summer Time, UTC+1). So if it\'s 2:00 PM in New York, it is 7:00 PM in London.',
+    flawedDraft: 'During daylight saving time, New York (Eastern Daylight Time, UTC-4) is 5 hours behind London (British Summer Time, UTC+1). So if it\'s 2:00 PM in New York, it is 9:00 PM in London.',
+    flaw: 'A 5-hour offset from 2:00 PM should give 7:00 PM, not 9:00 PM — the stated offset and final answer are inconsistent (a 7-hour jump was applied instead of 5).',
+  },
+  {
+    id: 'temporal-04',
+    category: 'temporal',
+    query: 'My gym membership renews every 90 days from my last renewal on June 1. What is the next renewal date?',
+    correctDraft: 'Starting June 1 and adding 90 days: June has 30 days, so 29 days remain in June after June 1 (June 2-30), leaving 90 - 29 = 61 days. July has 31 days, leaving 61 - 31 = 30 days. That lands exactly on August 30. So the next renewal is August 30.',
+    flawedDraft: 'Starting June 1 and adding 90 days: June has 30 days, so 29 days remain in June after June 1 (June 2-30), leaving 90 - 29 = 61 days. July has 31 days, leaving 61 - 31 = 30 days. That lands exactly on August 30. So the next renewal is August 31.',
+    flaw: 'The worked calculation lands on August 30, but the stated final answer says August 31, off by one day from the shown arithmetic.',
+  },
+  {
+    id: 'temporal-05',
+    category: 'temporal',
+    query: 'If today is a Friday, what day of the week will it be 100 days from now?',
+    correctDraft: '100 days is 14 weeks and 2 days (14 × 7 = 98, remainder 2). Starting from Friday and adding 2 days: Saturday, then Sunday. So 100 days from a Friday is a Sunday.',
+    flawedDraft: '100 days is 14 weeks and 2 days (14 × 7 = 98, remainder 2). Starting from Friday and adding 2 days: Saturday, then Sunday. So 100 days from a Friday is a Saturday.',
+    flaw: 'The reasoning correctly counts 2 days forward from Friday (Saturday, then Sunday), landing on Sunday, but the final stated answer says Saturday, contradicting its own derivation.',
+  },
+  // ---------------------------------------------------------------------
+  // reasoning (multi-step logic, self-contradiction, word problems)
+  // ---------------------------------------------------------------------
+  {
+    id: 'reasoning-01',
+    category: 'reasoning',
+    query: 'Three friends, Ana, Ben, and Cara, are standing in a line. Ana is not first. Cara is not last. Ben is not in the middle. Who is standing where?',
+    correctDraft: 'Ben is not in the middle, so Ben is first or last. Ana is not first, so if Ben were last, Ana would have to be middle (since she can\'t be first), leaving Cara first — but Cara can\'t be last, which is satisfied, so check: Cara first, Ana middle, Ben last. Check all constraints: Ana not first (true, she\'s middle), Cara not last (true, she\'s first), Ben not middle (true, he\'s last). This works: Cara first, Ana middle, Ben last.',
+    flawedDraft: 'Ben is not in the middle, so Ben is first or last. Ana is not first, so if Ben were last, Ana would have to be middle (since she can\'t be first), leaving Cara first — but Cara can\'t be last, which is satisfied, so check: Cara first, Ana middle, Ben last. Check all constraints: Ana not first (true, she\'s middle), Cara not last (true, she\'s first), Ben not middle (true, he\'s last). This works: Ana first, Cara middle, Ben last.',
+    flaw: 'The final stated arrangement ("Ana first, Cara middle, Ben last") contradicts both the derivation just above it and the constraint "Ana is not first" — Ana is placed first despite that being explicitly ruled out.',
+  },
+  {
+    id: 'reasoning-02',
+    category: 'reasoning',
+    query: 'A store has a policy: "All returns must be made within 30 days AND with a receipt." A customer says they returned an item on day 25 without a receipt and it was accepted. Is that consistent with the stated policy?',
+    correctDraft: 'No, that is not consistent. The policy uses "AND", meaning both conditions must hold: within 30 days AND with a receipt. Returning on day 25 satisfies the time condition but the customer had no receipt, so the second condition fails. Under a strict reading of the stated policy, that return should not have been accepted.',
+    flawedDraft: 'Yes, that is consistent. The policy uses "AND", meaning both conditions must hold: within 30 days AND with a receipt. Returning on day 25 satisfies the time condition but the customer had no receipt, so the second condition fails. Under a strict reading of the stated policy, that return should not have been accepted.',
+    flaw: 'The opening verdict ("Yes, that is consistent") directly contradicts the explanation that follows, which correctly concludes the return should NOT have been accepted under an AND policy.',
+  },
+  {
+    id: 'reasoning-03',
+    category: 'reasoning',
+    query: 'If all engineers at a company use Linux, and Sofia does not use Linux, what can we conclude about whether Sofia is an engineer?',
+    correctDraft: 'By contrapositive of "all engineers use Linux" (engineer → Linux), we get "not Linux → not engineer". Since Sofia does not use Linux, we can conclude Sofia is not an engineer.',
+    flawedDraft: 'By contrapositive of "all engineers use Linux" (engineer → Linux), we get "not Linux → not engineer". Since Sofia does not use Linux, we can conclude Sofia might still be an engineer, just an unusual one.',
+    flaw: 'The stated contrapositive rule is correctly derived but then not applied: given "not Linux → not engineer" and Sofia not using Linux, the valid conclusion is that Sofia is definitely NOT an engineer, not merely "might still be one."',
+  },
+  {
+    id: 'reasoning-04',
+    category: 'reasoning',
+    query: 'A company says: "We never lay off staff during a hiring freeze." They are currently in a hiring freeze and just laid off 20 people. Is this a contradiction?',
+    correctDraft: 'Yes, this is a direct contradiction. The company\'s stated policy claims layoffs never happen during a hiring freeze, but they are in a hiring freeze right now and did lay off staff, which directly violates the stated policy.',
+    flawedDraft: 'No, this is not a contradiction. The company\'s stated policy claims layoffs never happen during a hiring freeze, but they are in a hiring freeze right now and did lay off staff, which directly violates the stated policy.',
+    flaw: 'The opening verdict says "No, this is not a contradiction" but the explanation that immediately follows describes exactly why it IS a contradiction — the verdict and reasoning disagree.',
+  },
+  {
+    id: 'reasoning-05',
+    category: 'reasoning',
+    query: 'A tank is filled by pipe A alone in 6 hours and by pipe B alone in 3 hours. If both pipes run together, how long does it take to fill the tank?',
+    correctDraft: 'Pipe A fills 1/6 of the tank per hour, pipe B fills 1/3 per hour. Together: 1/6 + 1/3 = 1/6 + 2/6 = 3/6 = 1/2 of the tank per hour. So together they fill the tank in 2 hours.',
+    flawedDraft: 'Pipe A fills 1/6 of the tank per hour, pipe B fills 1/3 per hour. Together: 1/6 + 1/3 = 1/6 + 2/6 = 3/6 = 1/2 of the tank per hour. So together they fill the tank in 4 hours.',
+    flaw: 'If the combined rate is 1/2 tank per hour, time to fill is 1 / (1/2) = 2 hours, not 4 — the final answer does not follow from the correctly computed rate.',
+  },
+  // ---------------------------------------------------------------------
+  // units (unit conversion — extra category beyond the required set)
+  // ---------------------------------------------------------------------
+  {
+    id: 'units-01',
+    category: 'units',
+    query: 'My car\'s fuel tank holds 55 liters. Roughly how many US gallons is that?',
+    correctDraft: '1 US gallon is about 3.785 liters. 55 liters / 3.785 ≈ 14.5 US gallons, so the tank holds roughly 14.5 gallons.',
+    flawedDraft: '1 US gallon is about 3.785 liters. 55 liters / 3.785 ≈ 20.8 US gallons, so the tank holds roughly 20.8 gallons.',
+    flaw: 'Division error: 55 / 3.785 is approximately 14.5, not 20.8 (roughly matches dividing by 2.64 instead of 3.785, an imperial-gallon-like figure mistakenly used).',
+  },
+  {
+    id: 'units-02',
+    category: 'units',
+    query: 'A recipe from a US cookbook calls for a 350°F oven. What is that in Celsius?',
+    correctDraft: 'To convert Fahrenheit to Celsius: (F − 32) × 5/9. (350 − 32) × 5/9 = 318 × 5/9 ≈ 176.7, so about 177°C — commonly rounded to 180°C for a standard oven dial.',
+    flawedDraft: 'To convert Fahrenheit to Celsius: (F − 32) × 5/9. (350 − 32) × 5/9 = 318 × 5/9 ≈ 176.7, so about 143°C — commonly rounded to 180°C for a standard oven dial.',
+    flaw: 'The computed value 176.7 was mistranscribed as 143°C in the final sentence, contradicting the correct arithmetic shown just before it (and the "180°C" rounding that follows only makes sense for ~177, not 143).',
+  },
+  {
+    id: 'units-03',
+    category: 'units',
+    query: 'A hiking trail is listed as 12 kilometers. About how many miles is that, and roughly how long would it take at a 5 km/h walking pace?',
+    correctDraft: '1 kilometer is about 0.621 miles, so 12 km ≈ 7.45 miles. At a pace of 5 km/h, the time to cover 12 km is 12 / 5 = 2.4 hours, which is about 2 hours 24 minutes.',
+    flawedDraft: '1 kilometer is about 0.621 miles, so 12 km ≈ 7.45 miles. At a pace of 5 km/h, the time to cover 12 km is 12 / 5 = 2.4 hours, which is about 2 hours 40 minutes.',
+    flaw: '0.4 hours is 24 minutes (0.4 × 60), not 40 minutes — the decimal-to-minutes conversion is wrong even though the 2.4-hour figure itself is correct.',
+  },
+  {
+    id: 'units-04',
+    category: 'units',
+    query: 'A newborn baby weighs 3.4 kilograms. What is that in pounds and ounces?',
+    correctDraft: '1 kilogram is about 2.2046 pounds. 3.4 kg × 2.2046 ≈ 7.496 pounds. That\'s 7 whole pounds plus 0.496 × 16 ≈ 7.9 ounces, so approximately 7 lbs 8 oz.',
+    flawedDraft: '1 kilogram is about 2.2046 pounds. 3.4 kg × 2.2046 ≈ 7.496 pounds. That\'s 7 whole pounds plus 0.496 × 16 ≈ 7.9 ounces, so approximately 7 lbs 18 oz.',
+    flaw: 'There are only 16 ounces in a pound, so "18 oz" as a remainder is impossible (and inconsistent with the 7.9 oz just calculated) — a typo that produces a nonsensical unit value.',
+  },
+  {
+    id: 'units-05',
+    category: 'units',
+    query: 'A recipe needs 2 cups of flour but I only have a metric scale. How many grams of all-purpose flour is that (using the common baking approximation of 120g per cup)?',
+    correctDraft: 'Using 120 grams per cup as the standard baking approximation: 2 cups × 120 g/cup = 240 grams of all-purpose flour.',
+    flawedDraft: 'Using 120 grams per cup as the standard baking approximation: 2 cups × 120 g/cup = 340 grams of all-purpose flour.',
+    flaw: '2 × 120 is 240, not 340 — simple multiplication error in the final total.',
+  },
+];

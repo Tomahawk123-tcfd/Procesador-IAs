@@ -1,0 +1,119 @@
+{
+  "generatedAt": "2026-08-17T20:45:48.822Z",
+  "cases": [
+    {
+      "id": "temporal-01",
+      "category": "temporal",
+      "query": "Si una empresa se fundó en 2010, ¿en qué año cumplió 15 años?",
+      "correctDraft": "15 años después de 2010 es 2025.",
+      "flawedDraft": "15 años después de 2010 es 2024.",
+      "flaw": "año incorrecto (2025 vs 2024)"
+    },
+    {
+      "id": "temporal-02",
+      "category": "temporal",
+      "query": "Si alguien nació en 1990, ¿en qué año cumplió 30 años?",
+      "correctDraft": "30 años después de 1990 es 2020.",
+      "flawedDraft": "30 años después de 1990 es 2019.",
+      "flaw": "año incorrecto (2020 vs 2019)"
+    }
+  ],
+  "results": [
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "temporal-01",
+      "category": "temporal",
+      "draftType": "correct",
+      "latencyMs": 67815,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.3267786838055363,
+          "confidence": "low",
+          "avgSimilarity": 0.3267786838055363,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "temporal-01",
+      "category": "temporal",
+      "draftType": "flawed",
+      "latencyMs": 54756,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.24067224814826993,
+          "confidence": "low",
+          "avgSimilarity": 0.24067224814826993,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "temporal-02",
+      "category": "temporal",
+      "draftType": "correct",
+      "latencyMs": 58409,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.35672232497824485,
+          "confidence": "low",
+          "avgSimilarity": 0.35672232497824485,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "temporal-02",
+      "category": "temporal",
+      "draftType": "flawed",
+      "latencyMs": 42,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.261827458019398,
+          "confidence": "low",
+          "avgSimilarity": 0.261827458019398,
+          "contradictionCount": 0
+        }
+      }
+    }
+  ]
+}

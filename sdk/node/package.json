@@ -1,0 +1,21 @@
+{
+  "name": "linkcore",
+  "version": "0.1.0",
+  "description": "LinkCore — the CUDA for AI models. Route every query to the optimal model.",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "bin": {
+    "linkcore": "./cli.js"
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": ["ai", "llm", "routing", "ensemble", "ollama", "open-source"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}

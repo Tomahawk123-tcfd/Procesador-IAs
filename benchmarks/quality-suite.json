@@ -1,0 +1,152 @@
+[
+  {
+    "id": "reasoning_rest_graphql",
+    "category": "comparison",
+    "query": "Explica la diferencia entre REST y GraphQL para una API de ecommerce, con pros, contras y recomendación final."
+  },
+  {
+    "id": "math_compound_interest",
+    "category": "math",
+    "query": "Calcula cuánto dinero tendré en 3 años si invierto 12000 euros al 7% anual compuesto y explica cada paso."
+  },
+  {
+    "id": "code_paradigms",
+    "category": "code",
+    "query": "Compara programación orientada a objetos y funcional con un ejemplo práctico en JavaScript."
+  },
+  {
+    "id": "planning_modular_migration",
+    "category": "planning",
+    "query": "Diseña una estrategia técnica para migrar una app Node monolítica a una arquitectura modular sin romper producción."
+  },
+  {
+    "id": "analysis_overfitting",
+    "category": "analysis",
+    "query": "Resume qué es el overfitting, cómo evitarlo, un ejemplo claro y errores frecuentes."
+  },
+  {
+    "id": "code_debug_race",
+    "category": "code",
+    "query": "Analiza una posible condición de carrera en un servicio Node que actualiza inventario y propone una solución con pruebas."
+  },
+  {
+    "id": "reasoning_database_choice",
+    "category": "comparison",
+    "query": "Compara PostgreSQL y SQLite para una aplicación offline-first y recomienda una arquitectura justificando los trade-offs."
+  },
+  {
+    "id": "math_margin",
+    "category": "math",
+    "query": "Un producto cuesta 42 euros producirlo y se vende a 79 euros. Calcula margen bruto en euros y porcentaje, mostrando la fórmula."
+  },
+  {
+    "id": "planning_incident_response",
+    "category": "planning",
+    "query": "Crea un plan técnico para responder a una caída de producción con pérdida intermitente de datos, priorizando diagnóstico y seguridad."
+  },
+  {
+    "id": "analysis_auth_security",
+    "category": "analysis",
+    "query": "Evalúa los riesgos de guardar tokens JWT en localStorage frente a cookies httpOnly y da una recomendación práctica."
+  },
+  {
+    "id": "fact_simple",
+    "category": "fact",
+    "query": "¿Cuál es la capital de Canadá?"
+  },
+  {
+    "id": "reasoning_product_metrics",
+    "category": "comparison",
+    "query": "Compara retención y adquisición como prioridad para una startup SaaS temprana y explica qué métricas decidirían el orden."
+  },
+  {
+    "id": "math_discount_stack",
+    "category": "math",
+    "query": "Un artículo cuesta 150 euros. Se aplican dos descuentos sucesivos del 20% y del 10%. Calcula el precio final y el descuento efectivo total en porcentaje, mostrando cada paso."
+  },
+  {
+    "id": "math_unit_conversion",
+    "category": "math",
+    "query": "Un coche recorre 340 km con 28 litros de gasolina. Calcula el consumo en litros/100km y las millas por galón equivalentes, mostrando las fórmulas."
+  },
+  {
+    "id": "math_loan_amortization",
+    "category": "math",
+    "query": "Calcula la cuota mensual aproximada de un préstamo de 20000 euros a 5 años con un interés anual del 6%, explicando la fórmula de amortización usada."
+  },
+  {
+    "id": "math_statistics_basic",
+    "category": "math",
+    "query": "Dado el conjunto de datos [12, 15, 12, 18, 20, 15, 22], calcula la media, la mediana y la moda, mostrando el procedimiento."
+  },
+  {
+    "id": "code_async_bug",
+    "category": "code",
+    "query": "Revisa este patrón: una función async que hace 3 llamadas fetch dentro de un forEach y espera que terminen todas antes de continuar. Explica por qué falla y da la solución correcta en JavaScript."
+  },
+  {
+    "id": "code_sql_injection",
+    "category": "code",
+    "query": "Explica por qué concatenar strings en una consulta SQL es peligroso, muestra un ejemplo vulnerable en Node con pg, y la versión corregida con parámetros."
+  },
+  {
+    "id": "code_memory_leak",
+    "category": "code",
+    "query": "Describe una causa común de fuga de memoria en una app React con useEffect y event listeners, y cómo solucionarla con un ejemplo de código."
+  },
+  {
+    "id": "code_algorithm_complexity",
+    "category": "code",
+    "query": "Explica la complejidad temporal de buscar un elemento en un array sin ordenar frente a un árbol binario de búsqueda balanceado, con notación Big O."
+  },
+  {
+    "id": "planning_onboarding_flow",
+    "category": "planning",
+    "query": "Diseña un flujo de onboarding para una app fintech nueva que minimice abandono sin sacrificar cumplimiento normativo (KYC)."
+  },
+  {
+    "id": "planning_scaling_database",
+    "category": "planning",
+    "query": "Propón una estrategia para escalar una base de datos PostgreSQL que empieza a sufrir cuellos de botella con 10 millones de filas, priorizando cambios de bajo riesgo primero."
+  },
+  {
+    "id": "analysis_cache_invalidation",
+    "category": "analysis",
+    "query": "Analiza los riesgos de usar un TTL fijo frente a invalidación activa de caché en un sistema de precios que cambia con frecuencia."
+  },
+  {
+    "id": "analysis_rate_limiting",
+    "category": "analysis",
+    "query": "Evalúa las ventajas y desventajas de rate limiting por IP frente a por token de usuario en una API pública, y recomienda un enfoque híbrido si aplica."
+  },
+  {
+    "id": "analysis_microservices_tradeoffs",
+    "category": "analysis",
+    "query": "Analiza cuándo migrar de un monolito a microservicios aporta valor real y cuándo es prematuro, con criterios concretos de decisión."
+  },
+  {
+    "id": "fact_ohms_law",
+    "category": "fact",
+    "query": "¿Cuál es la fórmula de la Ley de Ohm y qué representa cada variable?"
+  },
+  {
+    "id": "fact_http_status",
+    "category": "fact",
+    "query": "¿Qué significa el código de estado HTTP 429 y en qué situación se devuelve normalmente?"
+  },
+  {
+    "id": "reasoning_orm_vs_raw_sql",
+    "category": "comparison",
+    "query": "Compara usar un ORM frente a SQL crudo para una aplicación con lógica de negocio compleja, con pros, contras y una recomendación justificada."
+  },
+  {
+    "id": "reasoning_monorepo_vs_polyrepo",
+    "category": "comparison",
+    "query": "Compara monorepo y polyrepo para un equipo de 15 ingenieros con 6 servicios relacionados, explicando qué factores inclinarían la decisión."
+  },
+  {
+    "id": "fact_speed_of_light",
+    "category": "fact",
+    "query": "¿Cuál es la velocidad de la luz en el vacío, en kilómetros por segundo?"
+  }
+]

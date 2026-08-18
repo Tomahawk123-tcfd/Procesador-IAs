@@ -1,0 +1,130 @@
+{
+  "generatedAt": "2026-08-17T20:24:58.964Z",
+  "cases": [
+    {
+      "id": "math-01",
+      "category": "math",
+      "query": "¿Cuánto es 23 por 17?",
+      "correctDraft": "23 x 17 = 391.",
+      "flawedDraft": "23 x 17 = 381.",
+      "flaw": "producto incorrecto (391 vs 381)"
+    },
+    {
+      "id": "math-02",
+      "category": "math",
+      "query": "¿Cuánto es 12,5 por 8?",
+      "correctDraft": "12,5 x 8 = 100.",
+      "flawedDraft": "12,5 x 8 = 105.",
+      "flaw": "producto incorrecto (100 vs 105)"
+    }
+  ],
+  "results": [
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "math-01",
+      "category": "math",
+      "draftType": "correct",
+      "latencyMs": 146857,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.6242640687119285,
+          "confidence": "moderate",
+          "avgSimilarity": 0.6242640687119285,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "math-01",
+      "category": "math",
+      "draftType": "flawed",
+      "latencyMs": 165394,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [
+          {
+            "modelA": "benchmark-claude",
+            "valueA": 381,
+            "contextA": "23 x 17 = 381",
+            "modelB": "qwen2.5:1.5b",
+            "valueB": 391,
+            "contextB": "23 por 17 es igual a 391",
+            "diffPct": 2.6,
+            "questionOverlap": 0.286
+          }
+        ],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.3971284267603333,
+          "confidence": "low",
+          "avgSimilarity": 0.3971284267603333,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "math-02",
+      "category": "math",
+      "draftType": "correct",
+      "latencyMs": 150774,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.1773939558192525,
+          "confidence": "low",
+          "avgSimilarity": 0.1773939558192525,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "math-02",
+      "category": "math",
+      "draftType": "flawed",
+      "latencyMs": 88,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.1773939558192525,
+          "confidence": "low",
+          "avgSimilarity": 0.1773939558192525,
+          "contradictionCount": 0
+        }
+      }
+    }
+  ]
+}

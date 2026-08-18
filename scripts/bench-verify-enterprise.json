@@ -1,0 +1,1121 @@
+{
+  "generatedAt": "2026-08-18T09:31:07.629Z",
+  "cases": [
+    {
+      "id": "sql-01",
+      "category": "sql",
+      "query": "Escribe una consulta SQL para desactivar todas las cuentas de usuarios inactivos desde hace más de 2 años en la tabla users.",
+      "correctDraft": "```sql\nUPDATE users\nSET status = 'inactive'\nWHERE last_login_at < NOW() - INTERVAL '2 years';\n```",
+      "flawedDraft": "```sql\nUPDATE users\nSET status = 'inactive';\n```",
+      "flaw": "Falta la cláusula WHERE por completo: desactiva TODAS las cuentas, no solo las inactivas desde hace 2 años.",
+      "note": "GAP ESPERADO: ningún verificador de este proyecto analiza SQL -- code-verify.js solo cubre Python/JavaScript/bash/JSON. No hay ningún error de sintaxis que detectar (el SQL es válido), el fallo es semántico.",
+      "expectedGap": true
+    },
+    {
+      "id": "sql-02",
+      "category": "sql",
+      "query": "Escribe una consulta que combine pedidos con sus clientes, incluyendo clientes que aún no han hecho ningún pedido.",
+      "correctDraft": "```sql\nSELECT c.customer_id, c.name, o.order_id, o.total\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id;\n```",
+      "flawedDraft": "```sql\nSELECT c.customer_id, c.name, o.order_id, o.total\nFROM customers c\nINNER JOIN orders o ON o.customer_id = c.customer_id;\n```",
+      "flaw": "INNER JOIN en vez de LEFT JOIN: descarta silenciosamente a los clientes sin pedidos, que era justo el requisito explícito de la pregunta.",
+      "note": "GAP ESPERADO: mismo motivo que sql-01, SQL fuera del alcance de code-verify.js.",
+      "expectedGap": true
+    },
+    {
+      "id": "sql-03",
+      "category": "sql",
+      "query": "Escribe una consulta que muestre el total de ventas por región, solo para regiones con más de 10 pedidos.",
+      "correctDraft": "```sql\nSELECT region, SUM(total) AS total_sales, COUNT(*) AS order_count\nFROM orders\nGROUP BY region\nHAVING COUNT(*) > 10;\n```",
+      "flawedDraft": "```sql\nSELECT region, SUM(total) AS total_sales, COUNT(*) AS order_count\nFROM orders\nGROUP BY region\nWHERE COUNT(*) > 10;\n```",
+      "flaw": "Usa WHERE en vez de HAVING para filtrar sobre un agregado -- sintácticamente inválido en la mayoría de motores SQL, pero el error no es de la sintaxis Python/JS/bash/JSON que este proyecto sabe comprobar.",
+      "note": "GAP ESPERADO: aunque este caso SÍ es un error de sintaxis real (WHERE no puede referenciar COUNT(*)), está en SQL, fuera del alcance actual de code-verify.js.",
+      "expectedGap": true
+    },
+    {
+      "id": "sql-04",
+      "category": "sql",
+      "query": "Escribe una consulta que devuelva los pedidos hechos durante todo el mes de marzo de 2025.",
+      "correctDraft": "```sql\nSELECT * FROM orders\nWHERE order_date >= '2025-03-01' AND order_date < '2025-04-01';\n```",
+      "flawedDraft": "```sql\nSELECT * FROM orders\nWHERE order_date >= '2025-03-01' AND order_date <= '2025-03-31';\n```",
+      "flaw": "Con order_date como timestamp (no solo fecha), \"<= 2025-03-31\" excluye los pedidos hechos el 31 de marzo después de medianoche (p.ej. 2025-03-31 14:00:00) -- error de inclusividad de rango de fechas, sutil y muy común.",
+      "note": "GAP ESPERADO: SQL fuera de alcance.",
+      "expectedGap": true
+    },
+    {
+      "id": "sql-05",
+      "category": "sql",
+      "query": "Escribe una consulta que encuentre los clientes que NO tienen un email de contacto registrado.",
+      "correctDraft": "```sql\nSELECT * FROM customers WHERE email IS NULL;\n```",
+      "flawedDraft": "```sql\nSELECT * FROM customers WHERE email = NULL;\n```",
+      "flaw": "Compara con \"= NULL\" en vez de \"IS NULL\": en SQL estándar esa comparación nunca es verdadera (NULL no es igual a nada, ni siquiera a sí mismo), así que la consulta devuelve 0 filas siempre, silenciosamente.",
+      "note": "GAP ESPERADO: SQL fuera de alcance.",
+      "expectedGap": true
+    },
+    {
+      "id": "contract-01",
+      "category": "contract",
+      "query": "Resume la cláusula de responsabilidad del contrato de servicios adjunto: \"El Proveedor será responsable de todos los daños directos derivados de su incumplimiento, con un límite máximo de 500.000 EUR. El Cliente será responsable de proporcionar acceso oportuno a los sistemas necesarios.\"",
+      "correctDraft": "Según el contrato, el Proveedor asume la responsabilidad por daños directos derivados de su propio incumplimiento, con un tope de 500.000 EUR. El Cliente, por su parte, es responsable de dar acceso a tiempo a los sistemas necesarios.",
+      "flawedDraft": "Según el contrato, el Cliente asume la responsabilidad por daños directos derivados del incumplimiento del Proveedor, con un tope de 500.000 EUR. El Proveedor, por su parte, es responsable de dar acceso a tiempo a los sistemas necesarios.",
+      "flaw": "Invierte completamente quién asume cada obligación: el resumen atribuye al Cliente la responsabilidad por daños del Proveedor, y al Proveedor la obligación de dar acceso que en realidad es del Cliente."
+    },
+    {
+      "id": "contract-02",
+      "category": "contract",
+      "query": "Según la cláusula de terminación: \"Cualquiera de las partes puede terminar este Acuerdo por conveniencia con un preaviso de 90 días. La terminación por causa justificada no requiere periodo de preaviso.\" ¿Cuánto preaviso hace falta?",
+      "correctDraft": "Depende del motivo: para terminación por conveniencia (sin motivo específico), el preaviso requerido es de 90 días. Para terminación por causa justificada, no se requiere ningún periodo de preaviso.",
+      "flawedDraft": "Depende del motivo: para terminación por conveniencia (sin motivo específico), el preaviso requerido es de 30 días. Para terminación por causa justificada, no se requiere ningún periodo de preaviso.",
+      "flaw": "Cambia el plazo de preaviso de 90 días (el que dice el contrato) a 30 días -- un error numérico simple pero con consecuencias legales reales si alguien actúa sobre este resumen."
+    },
+    {
+      "id": "contract-03",
+      "category": "contract",
+      "query": "Según esta definición contractual: \"'Información Confidencial' significa toda información técnica, comercial o financiera divulgada por una parte a la otra, EXCEPTO la información que ya sea de dominio público en el momento de la divulgación.\" ¿Un dato ya público antes de la firma está protegido por esta cláusula?",
+      "correctDraft": "No. La definición excluye explícitamente la información que ya sea de dominio público en el momento de la divulgación -- ese tipo de dato queda fuera del alcance de \"Información Confidencial\" y no está protegido por esta cláusula.",
+      "flawedDraft": "Sí. La definición de \"Información Confidencial\" cubre toda información técnica, comercial o financiera divulgada, y un dato ya público antes de la firma también queda protegido por esta cláusula.",
+      "flaw": "Ignora la excepción explícita del contrato (\"EXCEPTO la información que ya sea de dominio público\") y concluye justo lo contrario de lo que dice el texto."
+    },
+    {
+      "id": "contract-04",
+      "category": "contract",
+      "query": "Resume esta cláusula de propiedad intelectual: \"Todo trabajo derivado creado por el Contratista específicamente para este proyecto será propiedad del Cliente. Las herramientas, bibliotecas y metodologías preexistentes del Contratista permanecen siendo propiedad del Contratista.\"",
+      "correctDraft": "El trabajo creado específicamente para este proyecto pasa a ser propiedad del Cliente. Las herramientas y metodologías que el Contratista ya tenía antes del proyecto siguen siendo del Contratista.",
+      "flawedDraft": "Todo el trabajo, incluidas las herramientas y metodologías preexistentes del Contratista, pasa a ser propiedad del Cliente al finalizar el proyecto.",
+      "flaw": "Extiende la cesión de propiedad a las herramientas/metodologías preexistentes del Contratista, que el contrato excluye explícitamente -- una sobre-generalización que cambia el reparto real de propiedad intelectual."
+    },
+    {
+      "id": "contract-05",
+      "category": "contract",
+      "query": "Explica la cláusula de fuerza mayor: \"Ninguna parte será responsable por incumplimientos causados por circunstancias fuera de su control razonable, incluyendo desastres naturales, guerra o cambios regulatorios, siempre que la parte afectada notifique a la otra dentro de 5 días hábiles.\"",
+      "correctDraft": "Una parte queda eximida de responsabilidad por incumplimientos debidos a fuerza mayor (desastres naturales, guerra, cambios regulatorios), pero SOLO si notifica a la otra parte dentro de los 5 días hábiles siguientes al evento. Sin esa notificación a tiempo, la exención no aplica.",
+      "flawedDraft": "Una parte queda eximida de responsabilidad por incumplimientos debidos a fuerza mayor (desastres naturales, guerra, cambios regulatorios). La cláusula protege automáticamente sin necesidad de ninguna notificación previa.",
+      "flaw": "Omite la condición explícita de notificar dentro de 5 días hábiles -- presenta la exención como automática cuando el contrato la condiciona a un plazo concreto."
+    },
+    {
+      "id": "financial-01",
+      "category": "financial",
+      "query": "Una empresa tiene ingresos de 4.200.000 EUR y costes de 3.100.000 EUR. ¿Cuál es el margen de beneficio como porcentaje de los ingresos?",
+      "correctDraft": "Beneficio = 4.200.000 - 3.100.000 = 1.100.000 EUR. Margen = 1.100.000 / 4.200.000 = 26,2%.",
+      "flawedDraft": "Beneficio = 4.200.000 - 3.100.000 = 1.100.000 EUR. Margen = 1.100.000 / 3.100.000 = 35,5%.",
+      "flaw": "Calcula el margen dividiendo el beneficio entre los COSTES (3.100.000) en vez de entre los INGRESOS (4.200.000) -- confunde margen de beneficio con markup sobre coste, dos métricas financieras distintas con resultados muy diferentes."
+    },
+    {
+      "id": "financial-02",
+      "category": "financial",
+      "query": "Un producto cuesta 40 EUR al por mayor y se aplica un markup del 60% para fijar el precio de venta. ¿Cuál es el precio de venta?",
+      "correctDraft": "Precio de venta = Coste x (1 + markup) = 40 x 1,60 = 64 EUR.",
+      "flawedDraft": "Precio de venta = Coste / (1 - markup) = 40 / 0,40 = 100 EUR.",
+      "flaw": "Usa la fórmula de margen bruto objetivo (dividir entre 1 menos el margen) cuando la pregunta pide un markup sobre coste (multiplicar por 1 más el markup) -- confunde dos fórmulas financieras relacionadas pero distintas, dando 100 EUR en vez de 64 EUR."
+    },
+    {
+      "id": "financial-03",
+      "category": "financial",
+      "query": "Una inversión de 50.000 EUR genera un interés simple del 6% anual. ¿Cuánto interés se acumula en 4 años?",
+      "correctDraft": "Interés simple = Capital x tasa x tiempo = 50.000 x 0,06 x 4 = 12.000 EUR.",
+      "flawedDraft": "Interés simple = Capital x tasa x tiempo = 50.000 x 0,06 x 4 = 15.000 EUR.",
+      "flaw": "El cálculo mostrado (50.000 x 0,06 x 4) es correcto y da 12.000, pero el resultado final afirmado es 15.000 -- una discrepancia entre la fórmula mostrada y el número final, exactamente el patrón que math-verify.js está diseñado para detectar."
+    },
+    {
+      "id": "financial-04",
+      "category": "financial",
+      "query": "Se emiten 2.000.000 de acciones nuevas para recaudar 10.000.000 EUR. ¿Cuál es el precio por acción?",
+      "correctDraft": "Precio por acción = 10.000.000 / 2.000.000 = 5 EUR por acción.",
+      "flawedDraft": "Precio por acción = 2.000.000 / 10.000.000 = 0,20 EUR por acción.",
+      "flaw": "Invierte el numerador y el denominador de la división -- calcula acciones entre capital en vez de capital entre acciones, dando un precio por acción absurdamente bajo."
+    },
+    {
+      "id": "financial-05",
+      "category": "financial",
+      "query": "Una factura de 12.000 EUR + IVA del 21% debe pagarse en 3 plazos iguales. ¿Cuánto es cada plazo?",
+      "correctDraft": "Total con IVA = 12.000 x 1,21 = 14.520 EUR. Cada plazo = 14.520 / 3 = 4.840 EUR.",
+      "flawedDraft": "Cada plazo = 12.000 / 3 = 4.000 EUR (el IVA se paga aparte).",
+      "flaw": "Divide el importe SIN IVA entre los 3 plazos, ignorando por completo el 21% de IVA que la pregunta pide incluir -- cada plazo real debería ser 4.840 EUR, no 4.000 EUR.",
+      "note": "GAP ESPERADO: el borrador incorrecto no contiene ninguna expresión aritmética internamente inconsistente (12.000/3=4.000 es correcto en sí mismo) -- el error es que ignora un requisito de la pregunta (incluir el IVA), no un fallo de cálculo verificable comparando la respuesta consigo misma.",
+      "expectedGap": true
+    },
+    {
+      "id": "code-review-01",
+      "category": "code-review",
+      "query": "Escribe una función en JavaScript que lea un archivo de configuración de forma asíncrona y devuelva su contenido parseado como JSON.",
+      "correctDraft": "```javascript\nasync function loadConfig(path) {\n  try {\n    const raw = await fs.promises.readFile(path, \"utf8\");\n    return JSON.parse(raw);\n  } catch (err) {\n    throw new Error(\"No se pudo cargar la configuración: \" + err.message);\n  }\n}\n```",
+      "flawedDraft": "```javascript\nasync function loadConfig(path) {\n  const raw = await fs.promises.readFile(path, \"utf8\");\n  return JSON.parse(raw);\n}\n```",
+      "flaw": "Sin try/catch: si el archivo no existe o el JSON está mal formado, la promesa rechaza sin contexto útil y, si nadie más arriba en la cadena de llamadas la captura, se convierte en un unhandled promise rejection real -- código sintácticamente perfecto, sin manejo de errores.",
+      "note": "GAP ESPERADO: code-verify.js solo comprueba sintaxis (vm.Script para JS), nunca ausencia de manejo de errores -- ambos borradores son sintácticamente válidos.",
+      "expectedGap": true
+    },
+    {
+      "id": "code-review-02",
+      "category": "code-review",
+      "query": "Escribe una función en Python que devuelva los primeros n elementos de una lista.",
+      "correctDraft": "```python\ndef first_n(items, n):\n    return items[:n]\n```",
+      "flawedDraft": "```python\ndef first_n(items, n):\n    return items[:n+1]\n```",
+      "flaw": "Error de \"off-by-one\": items[:n+1] devuelve n+1 elementos, no n -- código sintácticamente correcto, sin ningún error de tipo o de importación, el defecto es puramente semántico.",
+      "note": "GAP ESPERADO: mismo motivo que el caso off-by-one ya documentado en el corpus autoescrito (code-03) -- ast.parse() nunca comprueba comportamiento.",
+      "expectedGap": true
+    },
+    {
+      "id": "code-review-03",
+      "category": "code-review",
+      "query": "Escribe una función en Python que abra un archivo, lo procese línea por línea, y lo cierre.",
+      "correctDraft": "```python\ndef process_file(path):\n    with open(path) as f:\n        for line in f:\n            handle(line)\n```",
+      "flawedDraft": "```python\ndef process_file(path):\n    f = open(path)\n    for line in f:\n        handle(line)\n```",
+      "flaw": "Abre el archivo con open() directo en vez de un context manager (with) y nunca lo cierra -- una fuga real de descriptores de archivo si handle() lanza una excepción a mitad de la iteración, código sintácticamente válido.",
+      "note": "GAP ESPERADO: fuga de recursos, no un error de sintaxis ni de API inexistente -- fuera del alcance de code-verify.js.",
+      "expectedGap": true
+    },
+    {
+      "id": "code-review-04",
+      "category": "code-review",
+      "query": "Escribe una función en JavaScript que compruebe si un valor existe en un objeto de configuración antes de usarlo, para evitar acceder a una propiedad indefinida.",
+      "correctDraft": "```javascript\nfunction getTimeout(config) {\n  if (config && typeof config.timeoutMs === \"number\") {\n    return config.timeoutMs;\n  }\n  return DEFAULT_TIMEOUT_MS;\n}\n```",
+      "flawedDraft": "```javascript\nfunction getTimeout(config) {\n  if (config.timeoutMs) {\n    return config.timeoutMs;\n  }\n  return DEFAULT_TIMEOUT_MS;\n}\n```",
+      "flaw": "Accede a config.timeoutMs sin comprobar antes que config no sea null/undefined -- si config es null, lanza un TypeError real (\"Cannot read properties of null\"), exactamente el caso que la pregunta pedía evitar. Además, \"if (config.timeoutMs)\" trata 0 como un timeout no configurado (falsy), un bug adicional si 0 es un valor legítimo.",
+      "note": "GAP ESPERADO: sin errores de sintaxis, el defecto es la ausencia de la comprobación null/undefined que la propia pregunta pedía explícitamente.",
+      "expectedGap": true
+    },
+    {
+      "id": "code-review-05",
+      "category": "code-review",
+      "query": "Escribe una función en Python que use un módulo de la librería estándar para comprobar si una ruta de archivo existe y, si no, la cree.",
+      "correctDraft": "```python\nimport os\n\ndef ensure_path(path):\n    if not os.path.exists(path):\n        os.makedirs(path)\n```",
+      "flawedDraft": "```python\nimport os\n\ndef ensure_path(path):\n    if not os.path.check_exists(path):\n        os.makedirs(path)\n```",
+      "flaw": "os.path.check_exists no existe en la librería estándar de Python (el método real es os.path.exists) -- API alucinada con sintaxis perfecta."
+    },
+    {
+      "id": "citation-01",
+      "category": "citation",
+      "query": "Según el RGPD, ¿en qué artículo se regula el derecho al olvido (supresión de datos)?",
+      "correctDraft": "El derecho de supresión (\"derecho al olvido\") está regulado en el Artículo 17 del RGPD.",
+      "flawedDraft": "El derecho de supresión (\"derecho al olvido\") está regulado en el Artículo 12 del RGPD.",
+      "flaw": "Cita el artículo equivocado: el Artículo 17 regula el derecho de supresión; el Artículo 12 regula la información y el acceso transparentes a los datos, un tema distinto.",
+      "note": "GAP ESPERADO: verificar la correspondencia real entre un artículo regulatorio y su contenido exige conocimiento externo del RGPD -- ningún verificador determinista de este proyecto tiene una base de conocimiento regulatoria. vNPU.GROUND SÍ podría cubrir esto si el texto real del RGPD se le pasara como fuente, pero no lo hace por defecto sin que alguien aporte esa fuente.",
+      "expectedGap": true
+    },
+    {
+      "id": "citation-02",
+      "category": "citation",
+      "query": "Resume qué requiere la Sección 4.2 de nuestra política de seguridad interna: \"Sección 4.2 (Gestión de contraseñas): Todas las contraseñas de sistemas de producción deben rotarse cada 90 días y tener un mínimo de 14 caracteres. Sección 4.3 (Autenticación multifactor): MFA es obligatorio para todos los accesos administrativos.\"",
+      "correctDraft": "La Sección 4.2 exige que las contraseñas de sistemas de producción se roten cada 90 días y tengan al menos 14 caracteres.",
+      "flawedDraft": "La Sección 4.2 exige autenticación multifactor (MFA) obligatoria para todos los accesos administrativos.",
+      "flaw": "Atribuye a la Sección 4.2 el contenido real de la Sección 4.3 (MFA) -- una referencia cruzada incorrecta entre dos secciones adyacentes del mismo documento."
+    },
+    {
+      "id": "citation-03",
+      "category": "citation",
+      "query": "Un informe de auditoría de código cita: \"Esta vulnerabilidad corresponde a CWE-89 (SQL Injection) según la clasificación estándar.\" ¿Es correcta esta clasificación para una vulnerabilidad de inyección SQL?",
+      "correctDraft": "Sí, CWE-89 es efectivamente la clasificación estándar de Common Weakness Enumeration para \"Improper Neutralization of Special Elements used in an SQL Command\" (SQL Injection).",
+      "flawedDraft": "No es del todo correcto -- CWE-89 corresponde a Cross-Site Scripting (XSS), no a SQL Injection; SQL Injection se clasifica como CWE-79.",
+      "flaw": "Intercambia los dos identificadores CWE más conocidos: CWE-89 es de hecho SQL Injection y CWE-79 es Cross-Site Scripting -- exactamente al revés de lo que afirma el borrador.",
+      "note": "GAP ESPERADO: requiere conocimiento externo de la base de datos CWE -- mismo tipo de gap que citation-01, cubierto potencialmente por vNPU.GROUND si se aporta la fuente CWE real como contexto, no por defecto.",
+      "expectedGap": true
+    },
+    {
+      "id": "citation-04",
+      "category": "citation",
+      "query": "Según el manual de la API interna, aportado como fuente: \"GET /v2/orders/{id} devuelve el pedido con el estado actual. El campo `status` puede ser: pending, shipped, delivered, cancelled.\" ¿Qué valores puede tener el campo status?",
+      "correctDraft": "Según la documentación de la API, el campo `status` puede tomar los valores: pending, shipped, delivered o cancelled.",
+      "flawedDraft": "Según la documentación de la API, el campo `status` puede tomar los valores: pending, shipped, delivered, cancelled o refunded.",
+      "flaw": "Añade \"refunded\" como un valor válido que la fuente aportada nunca menciona -- un valor de enumeración inventado que no aparece en ningún lugar del texto de origen. Este caso SÍ es del tipo que vNPU.GROUND está diseñado para cubrir cuando se le aporta la fuente real como contexto (canal UNSUPPORTED_ENTITY/valor no respaldado)."
+    },
+    {
+      "id": "citation-05",
+      "category": "citation",
+      "query": "Un informe técnico afirma: \"Como se detalla en la Sección 7 de este mismo informe, la latencia p99 se mantuvo por debajo de 200ms durante toda la prueba.\" El informe completo solo tiene 5 secciones. ¿Es correcta esta referencia?",
+      "correctDraft": "No, la referencia es incorrecta: el informe cita su propia \"Sección 7\", pero el documento completo solo tiene 5 secciones -- esa sección no existe.",
+      "flawedDraft": "Sí, la referencia a la Sección 7 es válida y corresponde a los datos de latencia mencionados en el resumen del informe.",
+      "flaw": "Valida una autorreferencia a una sección que no existe en el propio documento (solo hay 5 secciones, se cita la 7) -- el tipo exacto de referencia colgante que vNPU.GROUND detecta cuando el documento completo se le pasa como fuente."
+    },
+    {
+      "id": "ops-01",
+      "category": "ops",
+      "query": "Escribe la configuración de un grupo de seguridad (security group) en YAML que permita el acceso SSH solo desde la red interna de la oficina (10.0.5.0/24).",
+      "correctDraft": "```yaml\nsecurity_group:\n  name: ssh-access\n  rules:\n    - protocol: tcp\n      port: 22\n      source: 10.0.5.0/24\n```",
+      "flawedDraft": "```yaml\nsecurity_group:\n  name: ssh-access\n  rules:\n    - protocol: tcp\n      port: 22\n      source: 0.0.0.0/0\n```",
+      "flaw": "source: 0.0.0.0/0 abre el puerto SSH a TODO internet, no solo a la red interna de la oficina pedida (10.0.5.0/24) -- YAML sintácticamente válido, riesgo de seguridad real y grave.",
+      "note": "GAP ESPERADO: JSON válido/YAML no es un error de sintaxis -- ningún verificador de este proyecto entiende el significado operativo de un CIDR abierto.",
+      "expectedGap": true
+    },
+    {
+      "id": "ops-02",
+      "category": "ops",
+      "query": "Escribe una configuración JSON de política de reintentos para un cliente HTTP, con un backoff exponencial razonable para no saturar el servidor si falla.",
+      "correctDraft": "```json\n{\"maxRetries\": 5, \"backoffMs\": 500, \"backoffMultiplier\": 2, \"jitter\": true}\n```",
+      "flawedDraft": "```json\n{\"maxRetries\": 5, \"backoffMs\": 0, \"backoffMultiplier\": 1, \"jitter\": false}\n```",
+      "flaw": "backoffMs: 0 y backoffMultiplier: 1 significan que los 5 reintentos se disparan inmediatamente, sin espera creciente ni jitter -- exactamente la receta de un \"thundering herd\" que satura aún más un servidor ya fallando, aunque el JSON en sí es válido.",
+      "note": "GAP ESPERADO: JSON.parse() valida sintaxis, nunca semántica operativa -- una política de reintentos peligrosa es sintácticamente idéntica a una segura.",
+      "expectedGap": true
+    },
+    {
+      "id": "ops-03",
+      "category": "ops",
+      "query": "Escribe la configuración de conexión TLS para un cliente que se conecta a un servicio interno, verificando siempre el certificado del servidor.",
+      "correctDraft": "```javascript\nconst client = new HttpsClient({\n  host: \"internal-api.company.local\",\n  rejectUnauthorized: true,\n});\n```",
+      "flawedDraft": "```javascript\nconst client = new HttpsClient({\n  host: \"internal-api.company.local\",\n  rejectUnauthorized: false,\n});\n```",
+      "flaw": "rejectUnauthorized: false desactiva la verificación del certificado del servidor -- código sintácticamente válido que abre la puerta a un ataque man-in-the-middle, justo lo contrario de lo que pedía la pregunta (\"verificando siempre el certificado\").",
+      "note": "GAP ESPERADO: vm.Script() valida sintaxis JS, nunca el significado de seguridad de una opción de configuración concreta.",
+      "expectedGap": true
+    },
+    {
+      "id": "ops-04",
+      "category": "ops",
+      "query": "Escribe una configuración de backup automático que retenga copias diarias durante 30 días.",
+      "correctDraft": "```yaml\nbackup:\n  schedule: daily\n  retention_days: 30\n  destination: s3://company-backups/prod\n```",
+      "flawedDraft": "```yaml\nbackup:\n  schedule: daily\n  retention_days: 3\n  destination: s3://company-backups/prod\n```",
+      "flaw": "retention_days: 3 en vez de los 30 días pedidos -- un simple error numérico en una configuración sintácticamente válida, con consecuencia real: se pierde la capacidad de recuperar datos de hace más de 3 días.",
+      "note": "GAP ESPERADO: YAML válido en ambos casos, el número correcto (30) no aparece en ningún otro lugar del propio borrador con el que contrastarlo -- distinto del patrón que math-verify.js sabe comprobar (una expresión que se contradice consigo misma).",
+      "expectedGap": true
+    },
+    {
+      "id": "ops-05",
+      "category": "ops",
+      "query": "Escribe un límite de tasa (rate limit) para una API pública que permita 100 peticiones por minuto por usuario.",
+      "correctDraft": "```json\n{\"rateLimitPerMinute\": 100, \"scope\": \"per_user\"}\n```",
+      "flawedDraft": "```json\n{\"rateLimitPerMinute\": 100, \"scope\": \"global\"}\n```",
+      "flaw": "scope: \"global\" en vez de \"per_user\" -- el límite de 100 peticiones/minuto se aplica a TODOS los usuarios combinados, no a cada usuario individualmente como pedía la pregunta. JSON válido, comportamiento radicalmente distinto al pedido.",
+      "note": "GAP ESPERADO: JSON.parse() no entiende el significado de \"scope\", solo su validez sintáctica.",
+      "expectedGap": true
+    }
+  ],
+  "results": [
+    {
+      "opcode": "VERIFY",
+      "caseId": "sql-01",
+      "category": "sql",
+      "draftType": "correct",
+      "latencyMs": 80,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```sql\nUPDATE users\nSET status = 'inactive'\nWHERE last_login_at < NOW() - INTERVAL '2 years';\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "sql-01",
+      "category": "sql",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```sql\nUPDATE users\nSET status = 'inactive';\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "sql-02",
+      "category": "sql",
+      "draftType": "correct",
+      "latencyMs": 5,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```sql\nSELECT c.customer_id, c.name, o.order_id, o.total\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id;\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "sql-02",
+      "category": "sql",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```sql\nSELECT c.customer_id, c.name, o.order_id, o.total\nFROM customers c\nINNER JOIN orders o ON o.customer_id = c.customer_id;\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "sql-03",
+      "category": "sql",
+      "draftType": "correct",
+      "latencyMs": 4,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```sql\nSELECT region, SUM(total) AS total_sales, COUNT(*) AS order_count\nFROM orders\nGROUP BY region\nHAVING COUNT(*) > 10;\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "sql-03",
+      "category": "sql",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```sql\nSELECT region, SUM(total) AS total_sales, COUNT(*) AS order_count\nFROM orders\nGROUP BY region\nWHERE COUNT(*) > 10;\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "sql-04",
+      "category": "sql",
+      "draftType": "correct",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```sql\nSELECT * FROM orders\nWHERE order_date >= '2025-03-01' AND order_date < '2025-04-01';\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "sql-04",
+      "category": "sql",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```sql\nSELECT * FROM orders\nWHERE order_date >= '2025-03-01' AND order_date <= '2025-03-31';\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "sql-05",
+      "category": "sql",
+      "draftType": "correct",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```sql\nSELECT * FROM customers WHERE email IS NULL;\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "sql-05",
+      "category": "sql",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```sql\nSELECT * FROM customers WHERE email = NULL;\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "contract-01",
+      "category": "contract",
+      "draftType": "correct",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Según el contrato, el Proveedor asume la responsabilidad por daños directos derivados de su propio incumplimiento, con un tope de 500.000 EUR. El Cliente, por su parte, es responsable de dar acceso a tiempo a los sistemas necesarios."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "contract-01",
+      "category": "contract",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Según el contrato, el Cliente asume la responsabilidad por daños directos derivados del incumplimiento del Proveedor, con un tope de 500.000 EUR. El Proveedor, por su parte, es responsable de dar acceso a tiempo a los sistemas necesarios."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "contract-02",
+      "category": "contract",
+      "draftType": "correct",
+      "latencyMs": 2,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Depende del motivo: para terminación por conveniencia (sin motivo específico), el preaviso requerido es de 90 días. Para terminación por causa justificada, no se requiere ningún periodo de preaviso."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "contract-02",
+      "category": "contract",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Depende del motivo: para terminación por conveniencia (sin motivo específico), el preaviso requerido es de 30 días. Para terminación por causa justificada, no se requiere ningún periodo de preaviso."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "contract-03",
+      "category": "contract",
+      "draftType": "correct",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "No. La definición excluye explícitamente la información que ya sea de dominio público en el momento de la divulgación -- ese tipo de dato queda fuera del alcance de \"Información Confidencial\" y no está protegido por esta cláusula."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "contract-03",
+      "category": "contract",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Sí. La definición de \"Información Confidencial\" cubre toda información técnica, comercial o financiera divulgada, y un dato ya público antes de la firma también queda protegido por esta cláusula."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "contract-04",
+      "category": "contract",
+      "draftType": "correct",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "El trabajo creado específicamente para este proyecto pasa a ser propiedad del Cliente. Las herramientas y metodologías que el Contratista ya tenía antes del proyecto siguen siendo del Contratista."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "contract-04",
+      "category": "contract",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Todo el trabajo, incluidas las herramientas y metodologías preexistentes del Contratista, pasa a ser propiedad del Cliente al finalizar el proyecto."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "contract-05",
+      "category": "contract",
+      "draftType": "correct",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Una parte queda eximida de responsabilidad por incumplimientos debidos a fuerza mayor (desastres naturales, guerra, cambios regulatorios), pero SOLO si notifica a la otra parte dentro de los 5 días hábiles siguientes al evento. Sin esa notificación a tiempo, la exención no aplica."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "contract-05",
+      "category": "contract",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Una parte queda eximida de responsabilidad por incumplimientos debidos a fuerza mayor (desastres naturales, guerra, cambios regulatorios). La cláusula protege automáticamente sin necesidad de ninguna notificación previa."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "financial-01",
+      "category": "financial",
+      "draftType": "correct",
+      "latencyMs": 4,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Beneficio = 4.200.000 - 3.100.000 = 1.100.000 EUR. Margen = 1.100.000 / 4.200.000 = 26,2%."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "financial-01",
+      "category": "financial",
+      "draftType": "flawed",
+      "latencyMs": 4,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Beneficio = 4.200.000 - 3.100.000 = 1.100.000 EUR. Margen = 1.100.000 / 3.100.000 = 35,5%."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "financial-02",
+      "category": "financial",
+      "draftType": "correct",
+      "latencyMs": 5,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Precio de venta = Coste x (1 + markup) = 40 x 1,60 = 64 EUR."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "financial-02",
+      "category": "financial",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Precio de venta = Coste / (1 - markup) = 40 / 0,40 = 100 EUR."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "financial-03",
+      "category": "financial",
+      "draftType": "correct",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Interés simple = Capital x tasa x tiempo = 50.000 x 0,06 x 4 = 12.000 EUR."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "financial-03",
+      "category": "financial",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de verificación matemática (calculado, no otra opinión de IA):\n  \"50.000 x 0,06 x 4\" = 12, pero el siguiente paso dice \"15.000\" = 15 (20% de diferencia) — revisa este cálculo.\n\nInterés simple = Capital x tasa x tiempo = 50.000 x 0,06 x 4 = 15.000 EUR."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "financial-04",
+      "category": "financial",
+      "draftType": "correct",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Precio por acción = 10.000.000 / 2.000.000 = 5 EUR por acción."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "financial-04",
+      "category": "financial",
+      "draftType": "flawed",
+      "latencyMs": 2,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Precio por acción = 2.000.000 / 10.000.000 = 0,20 EUR por acción."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "financial-05",
+      "category": "financial",
+      "draftType": "correct",
+      "latencyMs": 4,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Total con IVA = 12.000 x 1,21 = 14.520 EUR. Cada plazo = 14.520 / 3 = 4.840 EUR."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "financial-05",
+      "category": "financial",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Cada plazo = 12.000 / 3 = 4.000 EUR (el IVA se paga aparte)."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-review-01",
+      "category": "code-review",
+      "draftType": "correct",
+      "latencyMs": 4,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```javascript\nasync function loadConfig(path) {\n  try {\n    const raw = await fs.promises.readFile(path, \"utf8\");\n    return JSON.parse(raw);\n  } catch (err) {\n    throw new Error(\"No se pudo cargar la configuración: \" + err.message);\n  }\n}\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-review-01",
+      "category": "code-review",
+      "draftType": "flawed",
+      "latencyMs": 4,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```javascript\nasync function loadConfig(path) {\n  const raw = await fs.promises.readFile(path, \"utf8\");\n  return JSON.parse(raw);\n}\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-review-02",
+      "category": "code-review",
+      "draftType": "correct",
+      "latencyMs": 418,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```python\ndef first_n(items, n):\n    return items[:n]\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-review-02",
+      "category": "code-review",
+      "draftType": "flawed",
+      "latencyMs": 5,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```python\ndef first_n(items, n):\n    return items[:n+1]\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-review-03",
+      "category": "code-review",
+      "draftType": "correct",
+      "latencyMs": 5,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```python\ndef process_file(path):\n    with open(path) as f:\n        for line in f:\n            handle(line)\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-review-03",
+      "category": "code-review",
+      "draftType": "flawed",
+      "latencyMs": 4,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```python\ndef process_file(path):\n    f = open(path)\n    for line in f:\n        handle(line)\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-review-04",
+      "category": "code-review",
+      "draftType": "correct",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```javascript\nfunction getTimeout(config) {\n  if (config && typeof config.timeoutMs === \"number\") {\n    return config.timeoutMs;\n  }\n  return DEFAULT_TIMEOUT_MS;\n}\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-review-04",
+      "category": "code-review",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```javascript\nfunction getTimeout(config) {\n  if (config.timeoutMs) {\n    return config.timeoutMs;\n  }\n  return DEFAULT_TIMEOUT_MS;\n}\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-review-05",
+      "category": "code-review",
+      "draftType": "correct",
+      "latencyMs": 5,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```python\nimport os\n\ndef ensure_path(path):\n    if not os.path.exists(path):\n        os.makedirs(path)\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "code-review-05",
+      "category": "code-review",
+      "draftType": "flawed",
+      "latencyMs": 4,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "hasFindings": true,
+        "text": "⚠️ Aviso de sintaxis (verificado con un compilador real, no otra opinión de IA):\n  [python] Llamada a API que no existe en la libreria estandar instalada: os.path.check_exists\n\n```python\nimport os\n\ndef ensure_path(path):\n    if not os.path.check_exists(path):\n        os.makedirs(path)\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "citation-01",
+      "category": "citation",
+      "draftType": "correct",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "El derecho de supresión (\"derecho al olvido\") está regulado en el Artículo 17 del RGPD."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "citation-01",
+      "category": "citation",
+      "draftType": "flawed",
+      "latencyMs": 4,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "El derecho de supresión (\"derecho al olvido\") está regulado en el Artículo 12 del RGPD."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "citation-02",
+      "category": "citation",
+      "draftType": "correct",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "La Sección 4.2 exige que las contraseñas de sistemas de producción se roten cada 90 días y tengan al menos 14 caracteres."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "citation-02",
+      "category": "citation",
+      "draftType": "flawed",
+      "latencyMs": 4,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "La Sección 4.2 exige autenticación multifactor (MFA) obligatoria para todos los accesos administrativos."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "citation-03",
+      "category": "citation",
+      "draftType": "correct",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Sí, CWE-89 es efectivamente la clasificación estándar de Common Weakness Enumeration para \"Improper Neutralization of Special Elements used in an SQL Command\" (SQL Injection)."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "citation-03",
+      "category": "citation",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "No es del todo correcto -- CWE-89 corresponde a Cross-Site Scripting (XSS), no a SQL Injection; SQL Injection se clasifica como CWE-79."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "citation-04",
+      "category": "citation",
+      "draftType": "correct",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Según la documentación de la API, el campo `status` puede tomar los valores: pending, shipped, delivered o cancelled."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "citation-04",
+      "category": "citation",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Según la documentación de la API, el campo `status` puede tomar los valores: pending, shipped, delivered, cancelled o refunded."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "citation-05",
+      "category": "citation",
+      "draftType": "correct",
+      "latencyMs": 4,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "No, la referencia es incorrecta: el informe cita su propia \"Sección 7\", pero el documento completo solo tiene 5 secciones -- esa sección no existe."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "citation-05",
+      "category": "citation",
+      "draftType": "flawed",
+      "latencyMs": 4,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "Sí, la referencia a la Sección 7 es válida y corresponde a los datos de latencia mencionados en el resumen del informe."
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "ops-01",
+      "category": "ops",
+      "draftType": "correct",
+      "latencyMs": 5,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```yaml\nsecurity_group:\n  name: ssh-access\n  rules:\n    - protocol: tcp\n      port: 22\n      source: 10.0.5.0/24\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "ops-01",
+      "category": "ops",
+      "draftType": "flawed",
+      "latencyMs": 4,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```yaml\nsecurity_group:\n  name: ssh-access\n  rules:\n    - protocol: tcp\n      port: 22\n      source: 0.0.0.0/0\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "ops-02",
+      "category": "ops",
+      "draftType": "correct",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```json\n{\"maxRetries\": 5, \"backoffMs\": 500, \"backoffMultiplier\": 2, \"jitter\": true}\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "ops-02",
+      "category": "ops",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```json\n{\"maxRetries\": 5, \"backoffMs\": 0, \"backoffMultiplier\": 1, \"jitter\": false}\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "ops-03",
+      "category": "ops",
+      "draftType": "correct",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```javascript\nconst client = new HttpsClient({\n  host: \"internal-api.company.local\",\n  rejectUnauthorized: true,\n});\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "ops-03",
+      "category": "ops",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```javascript\nconst client = new HttpsClient({\n  host: \"internal-api.company.local\",\n  rejectUnauthorized: false,\n});\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "ops-04",
+      "category": "ops",
+      "draftType": "correct",
+      "latencyMs": 2,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```yaml\nbackup:\n  schedule: daily\n  retention_days: 30\n  destination: s3://company-backups/prod\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "ops-04",
+      "category": "ops",
+      "draftType": "flawed",
+      "latencyMs": 3,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```yaml\nbackup:\n  schedule: daily\n  retention_days: 3\n  destination: s3://company-backups/prod\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "ops-05",
+      "category": "ops",
+      "draftType": "correct",
+      "latencyMs": 4,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```json\n{\"rateLimitPerMinute\": 100, \"scope\": \"per_user\"}\n```"
+      }
+    },
+    {
+      "opcode": "VERIFY",
+      "caseId": "ops-05",
+      "category": "ops",
+      "draftType": "flawed",
+      "latencyMs": 4,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "hasFindings": false,
+        "text": "```json\n{\"rateLimitPerMinute\": 100, \"scope\": \"global\"}\n```"
+      }
+    }
+  ]
+}

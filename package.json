@@ -1,0 +1,25 @@
+{
+  "name": "linkcore-core-service",
+  "version": "0.1.0",
+  "description": "LinkCore — chip virtual: servicio de fondo que organiza intermediacion + ensemble learning entre IAs. Sin UI, sin puerto local, comunicacion por tuberia con nombre del sistema operativo.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "linkcore": "./bin/linkcore-cli.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/*.test.js",
+    "test:unit": "node --test test/*.test.js",
+    "benchmark:quality": "node test/processor-quality-benchmark.js",
+    "benchmark:quality:gate": "node test/processor-quality-benchmark.js --enforce"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^4.2.0",
+    "node-llama-cpp": "^3.20.0"
+  }
+}

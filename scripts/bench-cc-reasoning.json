@@ -1,0 +1,132 @@
+{
+  "generatedAt": "2026-08-17T21:41:40.222Z",
+  "cases": [
+    {
+      "id": "reason-01",
+      "category": "reasoning",
+      "query": "Compras 3 camisetas a 15 euros cada una y 2 pantalones a 40 euros cada uno. ¿Cuánto pagas en total?",
+      "correctDraft": "3 camisetas a 15 euros son 45 euros. 2 pantalones a 40 euros son 80 euros. Total = 45 + 80 = 125 euros.",
+      "flawedDraft": "3 camisetas a 15 euros son 45 euros. 2 pantalones a 40 euros son 80 euros. Total = 45 + 80 = 135 euros.",
+      "flaw": "suma final incorrecta (125 vs 135)"
+    },
+    {
+      "id": "reason-02",
+      "category": "reasoning",
+      "query": "Explica brevemente la relación entre PostgreSQL, las bases de datos relacionales y SQL.",
+      "correctDraft": "PostgreSQL es una base de datos relacional. Una base de datos relacional es un sistema basado en SQL. PostgreSQL es un sistema basado en SQL.",
+      "flawedDraft": "PostgreSQL es una base de datos relacional. Una base de datos relacional es un sistema basado en SQL. PostgreSQL no es un sistema basado en SQL.",
+      "flaw": "contradicción transitiva: afirma A=B, B=C, pero también A≠C dentro del mismo texto",
+      "note": "GAP CONOCIDO: structural-verify.js#verifyStructuralCoherence existe y está diseñado exactamente para este patrón (cierre transitivo sobre afirmaciones \"X es Y\"), pero verification-pipeline.js#applyDeterministicVerification NUNCA lo importa -- solo usa math/code/output/coherence/temporal-verify. vNPU.VERIFY no puede detectar esto pase lo que pase. vNPU.CROSSCHECK tampoco lo cubre por esta vía (solo usa verifyCrossVoiceFacts/Numbers, que comparan ENTRE voces, no la coherencia interna de una sola voz) -- solo lo detectaría por casualidad si una voz local contradice directamente al draft sobre el mismo sujeto.",
+      "expectedGap": true
+    }
+  ],
+  "results": [
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "reason-01",
+      "category": "reasoning",
+      "draftType": "correct",
+      "latencyMs": 110246,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.4375948817776179,
+          "confidence": "low",
+          "avgSimilarity": 0.4375948817776179,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "reason-01",
+      "category": "reasoning",
+      "draftType": "flawed",
+      "latencyMs": 92608,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [
+          {
+            "modelA": "benchmark-claude",
+            "valueA": 135,
+            "contextA": "Total = 45 + 80 = 135 euros",
+            "modelB": "qwen2.5:1.5b",
+            "valueB": 125,
+            "contextB": "Total: 45 + 80 = 125 euros",
+            "diffPct": 7.4,
+            "questionOverlap": 0.667
+          }
+        ],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.405775262171855,
+          "confidence": "low",
+          "avgSimilarity": 0.405775262171855,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "reason-02",
+      "category": "reasoning",
+      "draftType": "correct",
+      "latencyMs": 106848,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.5186086738808224,
+          "confidence": "low",
+          "avgSimilarity": 0.5186086738808224,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "reason-02",
+      "category": "reasoning",
+      "draftType": "flawed",
+      "latencyMs": 1149,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.5132643018674121,
+          "confidence": "low",
+          "avgSimilarity": 0.5132643018674121,
+          "contradictionCount": 0
+        }
+      }
+    }
+  ]
+}

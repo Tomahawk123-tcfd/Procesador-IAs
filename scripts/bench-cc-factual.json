@@ -1,0 +1,135 @@
+{
+  "generatedAt": "2026-08-17T20:32:54.399Z",
+  "cases": [
+    {
+      "id": "fact-01",
+      "category": "factual",
+      "query": "¿Cuál es la capital de Canadá?",
+      "correctDraft": "La capital de Canadá es Ottawa.",
+      "flawedDraft": "La capital de Canadá es Toronto.",
+      "flaw": "capital incorrecta (Toronto es la ciudad más grande, no la capital)"
+    },
+    {
+      "id": "fact-02",
+      "category": "factual",
+      "query": "¿Cuál es la capital de Australia?",
+      "correctDraft": "La capital de Australia es Canberra.",
+      "flawedDraft": "La capital de Australia es Sídney.",
+      "flaw": "capital incorrecta (mismo caso documentado en vnpu-core.js sobre CROSSCHECK)"
+    }
+  ],
+  "results": [
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "fact-01",
+      "category": "factual",
+      "draftType": "correct",
+      "latencyMs": 22936,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 1,
+          "confidence": "high",
+          "avgSimilarity": 1,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "fact-01",
+      "category": "factual",
+      "draftType": "flawed",
+      "latencyMs": 52,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "factDisagreements": [
+          {
+            "subject": "La capital de Canadá",
+            "modelA": "benchmark-claude",
+            "predicateA": "Toronto",
+            "modelB": "qwen2.5:1.5b",
+            "predicateB": "Ottawa"
+          }
+        ],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.7857142857142858,
+          "confidence": "medium",
+          "avgSimilarity": 0.7857142857142858,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "fact-02",
+      "category": "factual",
+      "draftType": "correct",
+      "latencyMs": 1684,
+      "ok": true,
+      "degraded": false,
+      "caught": false,
+      "raw": {
+        "factDisagreements": [],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 1,
+          "confidence": "high",
+          "avgSimilarity": 1,
+          "contradictionCount": 0
+        }
+      }
+    },
+    {
+      "opcode": "CROSSCHECK",
+      "caseId": "fact-02",
+      "category": "factual",
+      "draftType": "flawed",
+      "latencyMs": 21,
+      "ok": true,
+      "degraded": false,
+      "caught": true,
+      "raw": {
+        "factDisagreements": [
+          {
+            "subject": "La capital de Australia",
+            "modelA": "benchmark-claude",
+            "predicateA": "Sídney",
+            "modelB": "qwen2.5:1.5b",
+            "predicateB": "Canberra"
+          }
+        ],
+        "numericDisagreements": [],
+        "contradictions": [],
+        "localVoicesConsulted": [
+          "qwen2.5:1.5b"
+        ],
+        "consensus": {
+          "score": 0.7857142857142858,
+          "confidence": "medium",
+          "avgSimilarity": 0.7857142857142858,
+          "contradictionCount": 0
+        }
+      }
+    }
+  ]
+}

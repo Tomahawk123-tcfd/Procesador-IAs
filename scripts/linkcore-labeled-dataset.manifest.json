@@ -1,0 +1,62 @@
+{
+  "generatedAt": "2026-08-18T11:49:15.712Z",
+  "outFile": "C:\\Users\\tomas\\Desktop\\Procesador IAs\\scripts\\linkcore-labeled-dataset.jsonl",
+  "sha256": "603885e7b7839267c561bfa8dcfd89fc88ba79d1caf495ba7d92258021c50e57",
+  "byteLength": 96968,
+  "rowCount": 180,
+  "rowsByOrigin": {
+    "self-authored": 60,
+    "independent": 60,
+    "enterprise": 60
+  },
+  "rowsByCategory": {
+    "math": 22,
+    "code": 22,
+    "factual": 22,
+    "temporal": 22,
+    "reasoning": 22,
+    "units": 10,
+    "sql": 10,
+    "contract": 10,
+    "financial": 10,
+    "code-review": 10,
+    "citation": 10,
+    "ops": 10
+  },
+  "rowsByGroundTruthLabel": {
+    "clean": 90,
+    "flawed": 90
+  },
+  "verifierAccuracy": {
+    "correct": 118,
+    "total": 180,
+    "pct": 65.6
+  },
+  "resultsFilesUsed": [
+    {
+      "origin": "self-authored",
+      "corpus": "benchmark-corpus-self-authored.mjs",
+      "resultsFile": "bench-verify-full.json",
+      "resultsGeneratedAt": "2026-08-17T21:53:01.904Z",
+      "casesInResultsFile": 30,
+      "resultEntries": 60
+    },
+    {
+      "origin": "independent",
+      "corpus": "benchmark-corpus-independent.mjs",
+      "resultsFile": "bench-verify-independent.json",
+      "resultsGeneratedAt": "2026-08-17T22:35:10.556Z",
+      "casesInResultsFile": 30,
+      "resultEntries": 60
+    },
+    {
+      "origin": "enterprise",
+      "corpus": "benchmark-corpus-enterprise.mjs",
+      "resultsFile": "bench-verify-enterprise.json",
+      "resultsGeneratedAt": "2026-08-18T09:31:07.629Z",
+      "casesInResultsFile": 30,
+      "resultEntries": 60
+    }
+  ],
+  "skipped": []
+}
