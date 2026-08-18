@@ -24,6 +24,8 @@
 // ("so", "therefore", "por tanto", "en conclusion", "the answer is"...), este
 // canal calla. No adivina cual es la conclusion de un texto sin marcadores.
 
+import { amountParser } from './number-format.js';
+
 var WEEKDAYS = {
   monday: 'lunes', tuesday: 'martes', wednesday: 'miercoles', thursday: 'jueves',
   friday: 'viernes', saturday: 'sabado', sunday: 'domingo',
@@ -122,15 +124,18 @@ export function verifyConclusionDate(text) {
 // "≈ 176.7, so about 143°C": el redondeo declarado tiene que estar cerca del
 // numero que se acaba de calcular. Margen del 5% -- generoso a proposito, para
 // que un "unos 180°C" sobre 176,7 (redondeo a la decena, legItimo) no salte.
-var ROUNDING_CLAIM = /[=≈]\s*(\d[\d.,]*)\s*[^.\n=≈]{0,30}?\b(?:so|about|approximately|roughly|as[íi] que|unos|aproximadamente|sobre)\s+(?:about\s+|approximately\s+|roughly\s+|unos\s+)?(\d[\d.,]*)/gi;
+// El marcador de aproximacion es OBLIGATORIO justo delante del segundo
+// numero. Antes bastaba un conector ("so", "así que") y entonces cualquier
+// cifra que continuara la frase se comparaba contra el ultimo calculo: "Total
+// cost = 100 dollars, so 20 boxes are needed" se reportaba como un redondeo
+// incoherente del 80% sobre un texto correcto. El conector sigue permitido,
+// pero solo como relleno previo al marcador.
+// El marcador NO puede ser "≈" ni "~": tras un "=" esos signos introducen el
+// RESULTADO del calculo, no un redondeo del paso anterior ("(350-32) × 5/9 ≈
+// 176.7"), y aceptarlos generaba avisos sobre respuestas correctas.
+var ROUNDING_CLAIM = /[=≈]\s*(\d[\d.,]*)\s*[^.\n=≈]{0,40}?\b(?:about|approximately|approx|roughly|around|nearly|unos|unas|aproximadamente|cerca\s+de|casi|redondeando\s+a)\s+(\d[\d.,]*)/gi;
 
-function toNumber(raw) {
-  var s = String(raw);
-  if ((s.match(/\./g) || []).length > 1) s = s.replace(/\./g, '');
-  s = s.replace(/\d(?:,\d{3})+(?!\d)/g, function (m) { return m.replace(/,/g, ''); }).replace(/,/g, '.');
-  var v = parseFloat(s);
-  return isFinite(v) ? v : null;
-}
+// La notacion de miles/decimales la decide number-format.js una vez por texto.
 
 // Falso positivo real, encontrado al probar este modulo contra los casos
 // CORRECTOS del corpus independiente (units-03, units-04): "= 2.4 hours,
@@ -145,6 +150,7 @@ var COMPOSITE_TAIL = /^\s*(?:hours?|horas?|h|lbs?|pounds?|libras?|ft|feet|foot|p
 export function verifyRoundingClaim(text) {
   if (!text) return [];
   var body = String(text);
+  var toNumber = amountParser(body);
   var findings = [];
   var m;
   ROUNDING_CLAIM.lastIndex = 0;

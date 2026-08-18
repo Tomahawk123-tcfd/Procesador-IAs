@@ -1,12 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { verifyUnits } from '../src/engine/unit-verify.js';
+import { verifyUnits, verifyUnitAwareArithmetic } from '../src/engine/unit-verify.js';
 import { verifyAlgebraicSubstitution } from '../src/engine/algebra-verify.js';
-import { verifyConclusionConsistency } from '../src/engine/conclusion-verify.js';
+import { verifyConclusionConsistency, verifyRoundingClaim } from '../src/engine/conclusion-verify.js';
 import { verifySqlSemantics } from '../src/engine/sql-semantic-verify.js';
 import { verifySourceFidelity } from '../src/engine/source-fidelity-verify.js';
 import { verifyConfigIntent } from '../src/engine/config-intent-verify.js';
+import { verifyFinancialFormulas } from '../src/engine/financial-verify.js';
+import { verifyGrounding } from '../src/engine/grounding-verify.js';
 
 // Cada caso lleva su pareja correcta: un verificador que solo acierta el fallo
 // pero grita sobre la respuesta buena es inservible en produccion, porque el
@@ -114,4 +116,81 @@ test('config channel catches a value that contradicts the requested one', functi
   var query = 'Escribe una configuración de backup automático que retenga copias diarias durante 30 días.';
   assert.equal(verifyConfigIntent('```yaml\nbackup:\n  retention_days: 3\n```', query).length, 1);
   assert.equal(verifyConfigIntent('```yaml\nbackup:\n  retention_days: 30\n```', query).length, 0);
+});
+
+test('financial channel catches a percentage taken over the wrong base', function () {
+  var query = 'Una empresa tiene ingresos de 4.200.000 EUR y costes de 3.100.000 EUR. ¿Cuál es el margen de beneficio como porcentaje de los ingresos?';
+  var flawed = 'Beneficio = 4.200.000 - 3.100.000 = 1.100.000 EUR. Margen = 1.100.000 / 3.100.000 = 35,5%.';
+  var correct = 'Beneficio = 4.200.000 - 3.100.000 = 1.100.000 EUR. Margen = 1.100.000 / 4.200.000 = 26,2%.';
+  assert.equal(verifyFinancialFormulas(flawed, query).length, 1);
+  assert.equal(verifyFinancialFormulas(correct, query).length, 0);
+});
+
+test('financial channel catches markup solved with the target-margin formula', function () {
+  var query = 'Un producto cuesta 40 EUR al por mayor y se aplica un markup del 60% para fijar el precio de venta. ¿Cuál es el precio de venta?';
+  assert.equal(verifyFinancialFormulas('Precio de venta = Coste / (1 - markup) = 40 / 0,40 = 100 EUR.', query).length, 1);
+  assert.equal(verifyFinancialFormulas('Precio de venta = Coste x (1 + markup) = 40 x 1,60 = 64 EUR.', query).length, 0);
+});
+
+test('financial channel catches an inverted per-unit division and an omitted tax', function () {
+  var shares = 'Se emiten 2.000.000 de acciones nuevas para recaudar 10.000.000 EUR. ¿Cuál es el precio por acción?';
+  assert.equal(verifyFinancialFormulas('Precio por acción = 2.000.000 / 10.000.000 = 0,20 EUR.', shares).length, 1);
+  assert.equal(verifyFinancialFormulas('Precio por acción = 10.000.000 / 2.000.000 = 5 EUR.', shares).length, 0);
+  var invoice = 'Una factura de 12.000 EUR + IVA del 21% debe pagarse en 3 plazos iguales. ¿Cuánto es cada plazo?';
+  assert.equal(verifyFinancialFormulas('Cada plazo = 12.000 / 3 = 4.000 EUR.', invoice).length, 1);
+  assert.equal(verifyFinancialFormulas('Total con IVA = 12.000 x 1,21 = 14.520 EUR. Cada plazo = 14.520 / 3 = 4.840 EUR.', invoice).length, 0);
+});
+
+test('grounding channel catches content attributed to the wrong party', function () {
+  var query = 'Resume la cláusula: "El Proveedor será responsable de todos los daños directos derivados de su incumplimiento, con un límite máximo de 500.000 EUR. El Cliente será responsable de proporcionar acceso oportuno a los sistemas necesarios."';
+  var flawed = 'El Proveedor, por su parte, es responsable de dar acceso a tiempo a los sistemas necesarios.';
+  var correct = 'El Cliente, por su parte, es responsable de dar acceso a tiempo a los sistemas necesarios.';
+  assert.equal(verifyGrounding(flawed, query).length, 1);
+  assert.equal(verifyGrounding(correct, query).length, 0);
+});
+
+test('grounding channel catches an exception of the source presented as absolute', function () {
+  var query = 'Según esta definición: "\'Información Confidencial\' significa toda información técnica, comercial o financiera divulgada por una parte a la otra, EXCEPTO la información que ya sea de dominio público en el momento de la divulgación." ¿Un dato ya público está protegido?';
+  var flawed = 'Sí. La definición cubre toda información técnica, comercial o financiera divulgada, y un dato ya público también queda protegido por esta cláusula.';
+  var correct = 'No. La definición excluye explícitamente la información que ya sea de dominio público en el momento de la divulgación.';
+  assert.equal(verifyGrounding(flawed, query).length, 1);
+  assert.equal(verifyGrounding(correct, query).length, 0);
+});
+
+test('grounding channel catches an enumeration value the source never lists', function () {
+  var query = 'Según el manual aportado como fuente: "GET /v2/orders/{id} devuelve el pedido con el estado actual. El campo status puede ser: pending, shipped, delivered, cancelled." ¿Qué valores puede tener status?';
+  var flawed = 'El campo status puede tomar los valores: pending, shipped, delivered, cancelled o refunded.';
+  var correct = 'El campo status puede tomar los valores: pending, shipped, delivered o cancelled.';
+  assert.equal(verifyGrounding(flawed, query).length, 1);
+  assert.equal(verifyGrounding(correct, query).length, 0);
+});
+
+// Regresiones de precision encontradas en revision del PR #1. Los cuatro casos
+// eran avisos sobre respuestas CORRECTAS, que es el fallo mas caro de este
+// producto: un operador que recibe avisos falsos deja de leer los avisos.
+test('unit channel reads Spanish thousands separators without inventing an error', function () {
+  assert.deepEqual(verifyUnitAwareArithmetic('El total es 1.100.000 EUR / 2 = 550.000 EUR'), []);
+  assert.deepEqual(verifyUnitAwareArithmetic('55 liters / 3.785 = 14.5 US gallons'), []);
+  assert.equal(verifyUnitAwareArithmetic('55 liters / 3.785 = 20.8 US gallons').length, 1);
+});
+
+test('rounding rule requires an approximation marker, not just a connector', function () {
+  assert.deepEqual(verifyRoundingClaim('Total cost = 100 dollars, so 20 boxes are needed.'), []);
+  assert.equal(verifyRoundingClaim('(350-32)*5/9 = 176.7, so about 143 degrees C').length, 1);
+});
+
+test('config channel ignores extra network ranges when the requested one is used', function () {
+  var query = 'Configura un security group que permita SSH solo desde la red interna de la oficina (10.0.5.0/24).';
+  var correct = '```yaml\nvpc_cidr: 10.0.0.0/16\nrules:\n  - port: 22\n    source: 10.0.5.0/24\n```';
+  var flawed = '```yaml\nrules:\n  - port: 22\n    source: 0.0.0.0/0\n```';
+  assert.deepEqual(verifyConfigIntent(correct, query), []);
+  assert.equal(verifyConfigIntent(flawed, query).length, 1);
+});
+
+test('config channel accepts the requested value in any key that measures it', function () {
+  var query = 'Configura backups que retengan copias diarias durante 30 días.';
+  var correct = '```yaml\nbackup:\n  schedule_days: 7\n  retention_days: 30\n```';
+  var flawed = '```yaml\nbackup:\n  schedule_days: 7\n  retention_days: 3\n```';
+  assert.deepEqual(verifyConfigIntent(correct, query), []);
+  assert.equal(verifyConfigIntent(flawed, query).length, 1);
 });

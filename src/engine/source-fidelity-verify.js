@@ -23,6 +23,8 @@
 //   - solo reporta si el numero de la respuesta NO aparece en ninguna parte de
 //     la fuente Y la fuente da otro valor para esa misma magnitud.
 
+import { detectNotation, parseAmount } from './number-format.js';
+
 var QUOTE_BLOCK = /["“”«»']([^"“”«»']{80,})["“”«»']/g;
 
 // Magnitud = la palabra que sigue al numero (o el simbolo pegado a el). Se
@@ -34,20 +36,19 @@ function normalizeMagnitude(word) {
   return w;
 }
 
-function toNumber(raw) {
-  var s = String(raw);
-  if ((s.match(/\./g) || []).length > 1) s = s.replace(/\./g, '');
-  s = s.replace(/\d(?:,\d{3})+(?!\d)/g, function (m) { return m.replace(/,/g, ''); }).replace(/,/g, '.');
-  var v = parseFloat(s);
-  return isFinite(v) ? v : null;
-}
+// La notacion de miles/decimales se decide una vez por texto (number-format.js):
+// leerla numero a numero comparaba "1.100.000" contra "550.000" con reglas
+// distintas y reportaba un desvio de x1000 sobre cifras correctas.
 
 // El parentesis opcional cubre la forma que usa el lenguaje contractual real,
 // "ninety (90) days": sin el, la cifra de la fuente quedaba sin magnitud y la
 // clausula no se podia contrastar con nada.
 var NUMBER_WITH_MAGNITUDE = /(\d[\d.,]*)\s*\)?\s*(%|€|\$|£|[A-Za-zÁ-ÿ]{2,20})/g;
 
-function magnitudesIn(text) {
+// La notacion se pasa desde fuera: la fuente y la respuesta se comparan cifra
+// a cifra, asi que las dos tienen que leerse con la MISMA regla de miles.
+function magnitudesIn(text, notation) {
+  var toNumber = function (raw) { return parseAmount(raw, notation); };
   var map = {};
   var m;
   NUMBER_WITH_MAGNITUDE.lastIndex = 0;
@@ -78,8 +79,9 @@ export function verifySourceFidelity(text, query) {
   var sources = extractQuotedSources(query);
   if (sources.length === 0) return [];
   var source = sources.join('\n');
-  var sourceMagnitudes = magnitudesIn(source);
-  var answerMagnitudes = magnitudesIn(text);
+  var notation = detectNotation(source + '\n' + String(text || ''));
+  var sourceMagnitudes = magnitudesIn(source, notation);
+  var answerMagnitudes = magnitudesIn(text, notation);
   var sourceNumbers = {};
   Object.keys(sourceMagnitudes).forEach(function (magnitude) {
     sourceMagnitudes[magnitude].forEach(function (entry) { sourceNumbers[entry.value] = true; });

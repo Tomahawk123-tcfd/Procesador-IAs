@@ -24,29 +24,22 @@
 //   3. comprobar que el resto de una descomposicion no exceda su propia base
 //      (18 oz dentro de una libra de 16 oz es imposible, no opinable).
 
+import { amountParser } from './number-format.js';
+
 // Palabra de unidad: letras, grados, %, barra ("g/cup", "km/h"). Nunca
 // incluye digitos -- un "3" pegado a la unidad seria parte del numero.
 var UNIT_WORD = '[A-Za-z°ºµ%][A-Za-z°ºµ%/.]{0,14}';
 
 // Numero con separadores de miles/decimales en cualquiera de las dos
-// notaciones. La normalizacion (que coma es que) se hace en normalizeNumber.
+// notaciones. Que separador es cual lo decide number-format.js.
 var NUMBER = '\\d[\\d.,]*';
 
 var OPERATORS = '[+\\-−*/×x÷]';
 
-// Misma regla que math-verify.js#normalizeExpr, deliberadamente estrecha:
-// una coma seguida de EXACTAMENTE 3 digitos y nada mas de digitos detras es
-// separador de miles y se borra; cualquier otra coma es decimal. Se
-// reimplementa aqui en vez de exportarse desde math-verify para no cambiar la
-// superficie publica de un modulo ya en produccion.
-function normalizeNumber(raw) {
-  var s = String(raw).replace(/\d(?:,\d{3})+(?!\d)/g, function (m) { return m.replace(/,/g, ''); });
-  // Notacion española de miles: "1.100.000" (mas de un punto) -> se borran.
-  if ((s.match(/\./g) || []).length > 1) s = s.replace(/\./g, '');
-  s = s.replace(/,/g, '.');
-  var value = parseFloat(s);
-  return isFinite(value) ? value : null;
-}
+// La lectura de miles y decimales la decide number-format.js una vez por
+// texto. Decidirla numero a numero hacia que los dos operandos de una misma
+// expresion se interpretaran con reglas distintas ("1.100.000 / 2 = 550.000"
+// daba un error del 99900% sobre un texto correcto).
 
 // Tolerancia doble, para no llamar error a un redondeo legItimo. Un texto que
 // escribe "≈ 14.5" tras dividir 55/3.785 (14.5310...) no se equivoca: redondea
@@ -98,6 +91,7 @@ export function verifyUnitAwareArithmetic(text, tolerancePct) {
   if (!text) return [];
   tolerancePct = typeof tolerancePct === 'number' ? tolerancePct : 1;
   var clean = String(text).replace(/[$€£¥]\s*(?=\d)/g, '');
+  var parseNumber = amountParser(clean);
   var findings = [];
   var match;
   UNIT_ARITH.lastIndex = 0;
@@ -112,9 +106,9 @@ export function verifyUnitAwareArithmetic(text, tolerancePct) {
       UNIT_ARITH.lastIndex = match.indices[6][0];
       continue;
     }
-    var a = normalizeNumber(match[1]);
-    var b = normalizeNumber(match[4]);
-    var claimed = normalizeNumber(match[6]);
+    var a = parseNumber(match[1]);
+    var b = parseNumber(match[4]);
+    var claimed = parseNumber(match[6]);
     if (a === null || b === null || claimed === null) continue;
     var computed = applyOperator(a, match[3], b);
     if (computed === null || !isFinite(computed)) continue;
@@ -139,11 +133,13 @@ var DECIMAL_TO_HM = /(\d+[.,]\d+)\s*(?:hours?|horas?|h)\b[^.\n]{0,60}?(\d+)\s*(?
 
 export function verifyTimeDecomposition(text) {
   if (!text) return [];
+  var body = String(text);
+  var parseNumber = amountParser(body);
   var findings = [];
   var match;
   DECIMAL_TO_HM.lastIndex = 0;
-  while ((match = DECIMAL_TO_HM.exec(String(text))) !== null) {
-    var decimal = normalizeNumber(match[1]);
+  while ((match = DECIMAL_TO_HM.exec(body)) !== null) {
+    var decimal = parseNumber(match[1]);
     var hours = parseInt(match[2], 10);
     var minutes = parseInt(match[3], 10);
     if (decimal === null) continue;

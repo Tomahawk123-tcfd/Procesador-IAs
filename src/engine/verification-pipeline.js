@@ -10,6 +10,8 @@ import { verifyConclusionConsistency } from './conclusion-verify.js';
 import { verifySqlSemantics } from './sql-semantic-verify.js';
 import { verifySourceFidelity } from './source-fidelity-verify.js';
 import { verifyConfigIntent } from './config-intent-verify.js';
+import { verifyFinancialFormulas } from './financial-verify.js';
+import { verifyGrounding } from './grounding-verify.js';
 
 // Canales de verificacion que este pipeline sabe ejecutar. Se exporta para
 // que el motor de calidad agregada (quality-engine.js) pueda listar TODOS
@@ -23,7 +25,7 @@ export var VERIFICATION_CHANNELS = [
   // corpus que no lo habia visto nunca (scripts/offline-verify-probe.mjs):
   // 3/30 en el corpus independiente, 2/30 en el empresarial. Cada uno cubre
   // un modo de fallo concreto que ninguno de los ocho anteriores podia ver.
-  'unit', 'algebra', 'conclusion', 'sql', 'source', 'config',
+  'unit', 'algebra', 'conclusion', 'sql', 'source', 'config', 'financial', 'grounding',
 ];
 
 // Aplica los verificadores deterministas del procesador sobre un texto y
@@ -269,6 +271,44 @@ export async function applyDeterministicVerification(text, query) {
       out = configLines.join('\n') + '\n\n' + out;
     }
   } catch (e) { channelErrors.push('config'); }
+  try {
+    var financialFindings = verifyFinancialFormulas(text, query);
+    if (financialFindings.length > 0) {
+      hasFindings = true;
+      note('financial', financialFindings.length);
+      var financialLines = ['⚠️ Aviso financiero (la aritmética cuadra, la fórmula no es la pedida):'];
+      financialFindings.forEach(function (f) {
+        if (f.tipo === 'base_del_porcentaje_incorrecta') {
+          financialLines.push('  se pidió el porcentaje sobre "' + f.baseDeclarada + '" pero "' + f.expresion + '" divide entre ' + f.baseUsada + '.');
+        } else if (f.tipo === 'division_invertida') {
+          financialLines.push('  "' + f.expresion + '": ' + f.detalle + '.');
+        } else if (f.tipo === 'impuesto_omitido') {
+          financialLines.push('  ' + f.detalle + ' (' + f.pedido + ').');
+        } else {
+          financialLines.push('  se pidió ' + f.pedido + ' y la respuesta usa ' + f.usado + '.');
+        }
+      });
+      out = financialLines.join('\n') + '\n\n' + out;
+    }
+  } catch (e) { channelErrors.push('financial'); }
+  try {
+    var groundingFindings = verifyGrounding(text, query);
+    if (groundingFindings.length > 0) {
+      hasFindings = true;
+      note('grounding', groundingFindings.length);
+      var groundingLines = ['⚠️ Aviso de respaldo en la fuente aportada en la pregunta:'];
+      groundingFindings.forEach(function (f) {
+        if (f.tipo === 'atribucion_cruzada') {
+          groundingLines.push('  se atribuye a "' + f.atribuidoA + '" contenido que la fuente asigna a "' + f.perteneceA + '" (' + f.terminos.join(', ') + ').');
+        } else if (f.tipo === 'excepcion_de_la_fuente_omitida') {
+          groundingLines.push('  la fuente dice "' + f.marcadorEnLaFuente + '" y la respuesta afirma "' + f.afirmacionAbsoluta + '" sin recoger esa restricción.');
+        } else {
+          groundingLines.push('  "' + f.inventados.join(', ') + '" no aparece en la fuente (permitidos: ' + f.permitidosPorLaFuente.join(', ') + ').');
+        }
+      });
+      out = groundingLines.join('\n') + '\n\n' + out;
+    }
+  } catch (e) { channelErrors.push('grounding'); }
   return {
     text: out,
     hasFindings: hasFindings,

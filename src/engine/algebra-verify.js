@@ -25,17 +25,15 @@
 // la misma cosa. Si la respuesta no declara la formula, no hay nada contra lo
 // que comparar y este canal calla (0 hallazgos, no un aviso vacio).
 
+import { amountParser } from './number-format.js';
+
 var NUM = '\\d[\\d.,]*';
 var MULT = '[*×xX·]';
 var VARIABLE = '[A-Za-zÁ-ÿ][A-Za-zÁ-ÿ_0-9]{0,20}';
 
-function toNumber(raw) {
-  var s = String(raw);
-  if ((s.match(/\./g) || []).length > 1) s = s.replace(/\./g, '');
-  s = s.replace(/\d(?:,\d{3})+(?!\d)/g, function (m) { return m.replace(/,/g, ''); }).replace(/,/g, '.');
-  var v = parseFloat(s);
-  return isFinite(v) ? v : null;
-}
+// La notacion de miles/decimales se decide una vez por texto en
+// number-format.js: hacerlo numero a numero leia "1.100.000" como un millon y
+// "550.000" como quinientos cincuenta en la misma expresion.
 
 // Primer intento de este modulo (descartado tras probarlo en vivo): capturar
 // la etiqueta con una regex de "palabras antes del =". Fallaba en el caso
@@ -86,6 +84,7 @@ var RATIO_USED = new RegExp('^(' + NUM + ')\\s*(?:' + MULT + ')\\s*\\(?\\s*(' + 
 // sustituida para la MISMA cantidad.
 export function verifyRatioSubstitution(text) {
   if (!text) return [];
+  var toNumber = amountParser(text);
   var equations = extractEquations(text);
   var findings = [];
   var reported = {};
@@ -130,6 +129,7 @@ var PRODUCT_DECLARED = new RegExp('^(' + VARIABLE + ')\\s*(?:' + MULT + ')\\s*('
 
 export function verifyInvertedIsolation(text) {
   if (!text) return [];
+  var toNumber = amountParser(text);
   var equations = extractEquations(text);
   var findings = [];
   var reported = {};
