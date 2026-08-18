@@ -23,6 +23,7 @@
 // referencia con la que calcular recall.
 
 import { applyDeterministicVerification } from './verification-pipeline.js';
+import { verifyReferenceCatalog, validateCatalog } from './reference-catalog.js';
 
 var DEFAULT_GATE = {
   maxFindingRate: null,     // fraccion maxima de elementos con hallazgo
@@ -54,6 +55,19 @@ export async function runBatchAudit(payload) {
   var items = Array.isArray(input.items) ? input.items.map(normalizeItem) : [];
   if (items.length === 0) return { ok: false, error: 'items_vacio' };
   var gate = Object.assign({}, DEFAULT_GATE, input.gate || {});
+  // Catalogos de referencia opcionales (2026-08-18): el mismo cruce que hace
+  // GROUND con `catalogs`, aplicado al lote entero, para que las referencias
+  // normativas/tecnicas equivocadas entren en la puerta de calidad. Los
+  // catalogos se pasan ya parseados: este modulo no hace E/S. Un catalogo mal
+  // formado no se ignora en silencio -- aborta el lote, porque auditar con una
+  // taxonomia rota y dar el lote por bueno es peor que no auditar.
+  var catalogs = Array.isArray(input.catalogs) ? input.catalogs : [];
+  for (var c = 0; c < catalogs.length; c += 1) {
+    var catErrors = validateCatalog(catalogs[c]);
+    if (catErrors.length > 0) {
+      return { ok: false, error: 'catalogo_invalido: ' + (catalogs[c] && catalogs[c].id ? catalogs[c].id : 'indice_' + c) + ' -> ' + catErrors.join(', ') };
+    }
+  }
   var startedAt = Date.now();
 
   var results = [];
@@ -77,6 +91,25 @@ export async function runBatchAudit(payload) {
       // registra como error del elemento y el lote continua.
       results.push({ id: item.id, error: e && e.message ? e.message : String(e), latencyMs: Date.now() - itemStart });
       continue;
+    }
+    if (catalogs.length > 0) {
+      var catalogHits = 0;
+      try {
+        catalogs.forEach(function (cat) {
+          catalogHits += verifyReferenceCatalog(item.draft, cat).length;
+        });
+      } catch (e) {
+        verified.channelErrors = (verified.channelErrors || []).concat(['referenceCatalog']);
+        catalogHits = 0;
+      }
+      if (catalogHits > 0) {
+        // Se muta la copia local del resultado del pipeline, no un estado
+        // compartido: el canal de catalogo cuenta como cualquier otro canal
+        // para la matriz de confusion y el desglose agregado.
+        verified.findingCounts = Object.assign({}, verified.findingCounts, { referenceCatalog: catalogHits });
+        verified.channels = (verified.channels || []).concat(['referenceCatalog']);
+        verified.hasFindings = true;
+      }
     }
     var findings = 0;
     Object.keys(verified.findingCounts || {}).forEach(function (channel) {
@@ -117,6 +150,7 @@ export async function runBatchAudit(payload) {
 
   var summary = {
     items: items.length,
+    catalogs: catalogs.map(function (cat) { return cat.id + '@' + cat.version; }),
     audited: audited,
     failedItems: items.length - audited,
     withFindings: withFindings,

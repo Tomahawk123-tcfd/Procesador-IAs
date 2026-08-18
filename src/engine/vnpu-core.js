@@ -442,6 +442,42 @@ export async function runVNPUInstruction(opcode, payload, options) {
       } catch (e) {
         return { ok: false, error: 'error_interno: ' + e.message };
       }
+      // Catalogos de referencia (2026-08-18): unico hueco que las fuentes
+      // aportadas no cierran -- una respuesta puede citar el articulo o el
+      // CWE equivocado sin contradecir ninguna fuente, simplemente porque la
+      // fuente correcta no viene en el payload. Se compone AQUI en vez de
+      // dentro de grounding-verify.js porque es una entrada distinta (un
+      // catalogo que instala la empresa, versionado, no un documento del
+      // caso) y porque ese modulo ya tiene su contrato de canales cerrado.
+      // Sin `catalogs` en el payload no corre nada: el procesador no lleva
+      // conocimiento normativo propio y no debe fingir tenerlo.
+      if (payload.catalogs !== undefined && !Array.isArray(payload.catalogs)) {
+        return { ok: false, error: 'catalogs_debe_ser_array' };
+      }
+      if (payload.catalogs && payload.catalogs.length > 0) {
+        var catalogMod = await import('./reference-catalog.js');
+        var catalogFindings = [];
+        var catalogErrors = [];
+        payload.catalogs.forEach(function (cat) {
+          try {
+            catalogMod.verifyReferenceCatalog(payload.answer, cat).forEach(function (f) {
+              if (f.tipo === 'catalogo_invalido') {
+                catalogErrors.push((cat && cat.id ? cat.id : 'sin_id') + ': ' + f.detalle);
+                return;
+              }
+              catalogFindings.push(Object.assign({ channel: 'REFERENCE_CATALOG' }, f));
+            });
+          } catch (e) {
+            catalogErrors.push((cat && cat.id ? cat.id : 'sin_id') + ': ' + e.message);
+          }
+        });
+        groundResult.findings = (groundResult.findings || []).concat(catalogFindings);
+        groundResult.channelsRun = (groundResult.channelsRun || []).concat(['REFERENCE_CATALOG']);
+        groundResult.catalogsRun = payload.catalogs.map(function (c) {
+          return (c && c.id ? c.id : 'sin_id') + '@' + (c && c.version ? c.version : 'sin_version');
+        });
+        if (catalogErrors.length > 0) groundResult.catalogErrors = catalogErrors;
+      }
       var groundTime = Date.now() - startTime;
       recordTelemetry({
         opcode: VNPU_OPCODES.GROUND,
@@ -470,7 +506,10 @@ export async function runVNPUInstruction(opcode, payload, options) {
       });
       var groundVerified = {
         channels: groundResult.channelsRun || [],
-        channelErrors: [],
+        // Un catalogo mal formado es un error de canal, no un silencio: si no
+        // se propaga aqui, la puerta de calidad da por bueno un lote que en
+        // realidad no comprobo las referencias.
+        channelErrors: groundResult.catalogErrors ? ['REFERENCE_CATALOG'] : [],
         findingCounts: groundFindingCounts,
         hasFindings: !!(groundResult.findings && groundResult.findings.length),
       };

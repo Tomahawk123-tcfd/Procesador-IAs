@@ -26,7 +26,13 @@ var setPath = args.filter(function (a) { return a.charAt(0) !== '-'; })[0]
   || path.join(here, '..', 'quality-gate', 'regression-set.json');
 
 var spec = JSON.parse(fs.readFileSync(setPath, 'utf-8'));
-var result = await runBatchAudit({ items: spec.items, gate: spec.gate });
+// Los catalogos de referencia se declaran en el conjunto por RUTA relativa al
+// propio conjunto (no dentro del JSON) para que la empresa pueda versionar su
+// taxonomia aparte del conjunto de regresion y compartirla entre varios.
+var catalogs = (spec.catalogs || []).map(function (rel) {
+  return JSON.parse(fs.readFileSync(path.resolve(path.dirname(setPath), rel), 'utf-8'));
+});
+var result = await runBatchAudit({ items: spec.items, gate: spec.gate, catalogs: catalogs });
 
 if (!result.ok) {
   console.error('[quality-gate] no se pudo auditar: ' + result.error);
@@ -37,6 +43,9 @@ if (asJson) {
 } else {
   var s = result.summary;
   console.log('Conjunto: ' + path.basename(setPath) + ' — ' + s.audited + '/' + s.items + ' auditados en ' + s.latencyMs + 'ms');
+  if (result.summary.catalogs.length > 0) {
+    console.log('Catálogos de referencia: ' + result.summary.catalogs.join(', '));
+  }
   console.log('Recall: ' + (s.recall === null ? 'no calculable' : Math.round(s.recall * 100) + '%')
     + ' · falsos positivos: ' + (s.falsePositiveRate === null ? 'no calculable' : Math.round(s.falsePositiveRate * 100) + '%'));
   // Los fallos individuales son lo unico accionable de esta salida: sin ellos

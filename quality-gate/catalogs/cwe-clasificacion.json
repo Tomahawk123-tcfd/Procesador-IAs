@@ -1,0 +1,38 @@
+{
+  "id": "cwe-clasificacion",
+  "version": "2026-08",
+  "source": "CWE (MITRE), lista de debilidades más habituales",
+  "note": "Mismo criterio que el catálogo del RGPD: la empresa es dueña del contenido. Aquí solo entran clasificaciones estables y ampliamente citadas.",
+  "entries": [
+    {
+      "concept": "sql injection",
+      "aliases": ["inyección SQL", "inyeccion SQL"],
+      "reference": "CWE-89",
+      "referencePattern": "CWE-\\d+"
+    },
+    {
+      "concept": "cross-site scripting",
+      "aliases": ["XSS", "secuencias de comandos en sitios cruzados"],
+      "reference": "CWE-79",
+      "referencePattern": "CWE-\\d+"
+    },
+    {
+      "concept": "path traversal",
+      "aliases": ["directory traversal", "travesía de directorios"],
+      "reference": "CWE-22",
+      "referencePattern": "CWE-\\d+"
+    },
+    {
+      "concept": "cross-site request forgery",
+      "aliases": ["CSRF", "falsificación de peticiones en sitios cruzados"],
+      "reference": "CWE-352",
+      "referencePattern": "CWE-\\d+"
+    },
+    {
+      "concept": "deserialización de datos no confiables",
+      "aliases": ["deserialization of untrusted data", "deserialización insegura"],
+      "reference": "CWE-502",
+      "referencePattern": "CWE-\\d+"
+    }
+  ]
+}

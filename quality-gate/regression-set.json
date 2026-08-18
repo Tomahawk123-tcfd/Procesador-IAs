@@ -1,6 +1,10 @@
 {
   "name": "linkcore-regression-set",
   "note": "Conjunto etiquetado minimo que el propio procesador se aplica a si mismo en cada cambio. expectFindings=true significa que la respuesta ES defectuosa y el ALU tiene que verlo; false significa que es correcta y el ALU tiene que callar. La mitad limpia es la parte que importa: es la que impide que subir recall se pague con falsos positivos.",
+  "catalogs": [
+    "catalogs/rgpd-articulos.json",
+    "catalogs/cwe-clasificacion.json"
+  ],
   "gate": {
     "minRecall": 1,
     "maxFalsePositiveRate": 0,
@@ -77,6 +81,36 @@
       "id": "prosa-con-horas",
       "query": "Si un turno empieza a las 11:45 PM y dura 5 horas y 30 minutos, ¿cuándo acaba?",
       "draft": "El turno empieza a las 11:45 PM y 11:45 PM + 5:30 = 5:15 AM, así que acaba a las 5:15 AM.",
+      "expectFindings": false
+    },
+    {
+      "id": "rgpd-articulo-equivocado",
+      "query": "Un cliente pide que borremos sus datos. ¿En qué artículo del RGPD se apoya?",
+      "draft": "El derecho de supresión está recogido en el Artículo 12 del RGPD, así que hay que atenderlo en un mes.",
+      "expectFindings": true
+    },
+    {
+      "id": "rgpd-articulo-correcto",
+      "query": "Un cliente pide que borremos sus datos. ¿En qué artículo del RGPD se apoya?",
+      "draft": "El derecho de supresión está recogido en el Artículo 17 del RGPD, y el plazo de respuesta es de un mes.",
+      "expectFindings": false
+    },
+    {
+      "id": "rgpd-sin-citar-articulo",
+      "query": "Un cliente pide que borremos sus datos. ¿Qué obligación tenemos?",
+      "draft": "El derecho de supresión obliga a borrar los datos del interesado salvo que exista una base legal para conservarlos.",
+      "expectFindings": false
+    },
+    {
+      "id": "cwe-equivocado",
+      "query": "Clasifica esta vulnerabilidad: la consulta concatena la entrada del usuario en el SQL.",
+      "draft": "Es una inyección SQL, clasificada como CWE-79.",
+      "expectFindings": true
+    },
+    {
+      "id": "cwe-correcto-y-vecino",
+      "query": "Clasifica estas dos vulnerabilidades: SQL concatenado y HTML sin escapar.",
+      "draft": "La inyección SQL es CWE-89. El XSS es CWE-79.",
       "expectFindings": false
     }
   ]

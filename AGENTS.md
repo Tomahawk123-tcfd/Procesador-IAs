@@ -30,6 +30,9 @@ node bin/linkcore-cli.js vnpu AUDIT @conjunto.json
 
 # Instrucción TELEMETRY: estado real del hardware + historial de instrucciones
 node bin/linkcore-cli.js vnpu TELEMETRY
+
+# Instrucción GROUND: comprueba una respuesta contra las fuentes que dice citar
+node bin/linkcore-cli.js vnpu GROUND @caso-con-fuentes.json
 ```
 
 Formato del conjunto de AUDIT. `expectFindings` es opcional, pero sin él el
@@ -40,9 +43,18 @@ recall no es calculable y se informa como `null` en vez de inventarlo:
   "items": [
     { "id": "caso-1", "query": "la pregunta original", "draft": "la respuesta a auditar", "expectFindings": true }
   ],
+  "catalogs": ["catalogs/rgpd-articulos.json"],
   "gate": { "minRecall": 0.9, "maxFalsePositiveRate": 0, "maxFindingRate": 0.05, "maxChannelErrors": 0 }
 }
 ```
+
+`catalogs` es opcional y también existe en `GROUND`: son catálogos de referencia
+versionados (artículos del RGPD, clasificación CWE, la taxonomía interna que sea)
+que la empresa instala y de los que es dueña. El procesador no lleva conocimiento
+normativo propio: cruza lo que la respuesta cita con lo que el catálogo declara y
+dice de qué catálogo y versión sale el aviso. Sin catálogo ese canal no corre --
+no se inventa qué artículo es el correcto. Un catálogo mal formado aborta la
+auditoría en vez de dar el lote por bueno.
 
 Si el comando `linkcore` está en el PATH (instalación normal vía `install/install.ps1`), se puede usar directamente sin `node bin/linkcore-cli.js`:
 

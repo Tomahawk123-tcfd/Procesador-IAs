@@ -595,6 +595,24 @@ async function cmdVnpu(opcodeArg, payloadArg, json) {
       process.exitCode = 1;
       return;
     }
+    // Los catalogos de referencia (AUDIT y GROUND) se declaran por ruta, no
+    // pegados dentro del payload: una taxonomia normativa se versiona aparte y
+    // se comparte entre conjuntos. Las rutas se resuelven contra el directorio
+    // del propio payload cuando vino de un fichero, que es lo que espera quien
+    // escribe "catalogs/rgpd-articulos.json" al lado de su conjunto.
+    if (Array.isArray(payload.catalogs)) {
+      var catalogBase = payloadArg.charAt(0) === '@' ? path.dirname(payloadArg.slice(1)) : process.cwd();
+      try {
+        payload.catalogs = payload.catalogs.map(function (entry) {
+          if (typeof entry !== 'string') return entry;
+          return JSON.parse(fs.readFileSync(path.resolve(catalogBase, entry), 'utf-8'));
+        });
+      } catch (e) {
+        console.error('[LinkCore] no se pudo cargar un catalogo de referencia: ' + e.message);
+        process.exitCode = 1;
+        return;
+      }
+    }
   }
   try {
     await ensureRunning();

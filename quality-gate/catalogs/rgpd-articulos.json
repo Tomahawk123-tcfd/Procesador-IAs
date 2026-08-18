@@ -1,0 +1,38 @@
+{
+  "id": "rgpd-articulos",
+  "version": "2026-08",
+  "source": "Reglamento (UE) 2016/679 (RGPD)",
+  "note": "Catálogo de ejemplo, corto a propósito: el procesador no pretende saber derecho, sino cruzar lo que la respuesta cita con lo que el catálogo que instala la empresa declara. Cada entrada es discutible y versionable.",
+  "entries": [
+    {
+      "concept": "derecho de supresión",
+      "aliases": ["derecho al olvido", "right to erasure", "right to be forgotten"],
+      "reference": "Artículo 17",
+      "referencePattern": "(?:art[íi]culo|art\\.?|article)\\s*\\d+"
+    },
+    {
+      "concept": "derecho de acceso",
+      "aliases": ["right of access"],
+      "reference": "Artículo 15",
+      "referencePattern": "(?:art[íi]culo|art\\.?|article)\\s*\\d+"
+    },
+    {
+      "concept": "portabilidad de los datos",
+      "aliases": ["derecho a la portabilidad", "data portability"],
+      "reference": "Artículo 20",
+      "referencePattern": "(?:art[íi]culo|art\\.?|article)\\s*\\d+"
+    },
+    {
+      "concept": "notificación de una violación de seguridad a la autoridad",
+      "aliases": ["notificación de brecha a la autoridad", "breach notification to the supervisory authority"],
+      "reference": "Artículo 33",
+      "referencePattern": "(?:art[íi]culo|art\\.?|article)\\s*\\d+"
+    },
+    {
+      "concept": "evaluación de impacto relativa a la protección de datos",
+      "aliases": ["evaluación de impacto", "data protection impact assessment", "DPIA"],
+      "reference": "Artículo 35",
+      "referencePattern": "(?:art[íi]culo|art\\.?|article)\\s*\\d+"
+    }
+  ]
+}
